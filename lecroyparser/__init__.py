@@ -69,12 +69,9 @@ class ScopeData(object):
             self.x, self.y = self.parseData(data, sparse, secondDigits = secondDigits)
 
     def parseFile(self, path, sparse=-1, secondDigits = 3):
-        self.file = open(path, mode='rb')
+        with open(path, mode='rb') as file_in:
+            fileContent = file_in.read()
 
-        fileContent = self.file.read()
-
-        self.file.close()
-        del self.file
         return self.parseData(data=fileContent, sparse=sparse, secondDigits = secondDigits)
 
     def parseData(self, data, sparse, secondDigits = 3):
