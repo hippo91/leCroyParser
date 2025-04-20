@@ -21,7 +21,7 @@ Updated 2020 Jeroen van Oorschot, Eindhoven University of Technology
 
 import argparse
 from scope_data import ScopeData
-from utils import dump
+from utils import convert_to_text_file
 
 
 if __name__ == "__main__":
@@ -31,5 +31,4 @@ if __name__ == "__main__":
     data = ScopeData(args.path)
     # data = ScopeData(args.path, parseAll=True)
     print(data)
-    dump(data, output_filename="/tmp/toto.txt")
-    dump(data)
+    convert_to_text_file(args.path)
