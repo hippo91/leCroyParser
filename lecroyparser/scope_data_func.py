@@ -38,14 +38,32 @@ MetaData = namedtuple("MetaData", [
 
 
 def unpack(*, data: bytes, offset: int, position: int, length: int, endianness: str, format_specifier: str):
-    """a wrapper that reads binary data
-    in a given position in the file, with correct endianness, and returns the parsed
-    data as a tuple, according to the format specifier."""
+    """
+    Unpack the data from the given position and length.
+    
+    :param data: The data to unpack
+    :param offset: The offset to start unpacking from
+    :param position: The position to unpack from
+    :param length: The length of the data to unpack
+    :param endianness: The endianness of the data
+    :param format_specifier: The format specifier for unpacking
+    :return: The unpacked data
+    """
     shifted_position = offset + position
     return np.frombuffer(data[shifted_position : shifted_position + length], f"{endianness}{format_specifier}", count=1)[0]
 
 
 def parse(position: int, * , atype: AtomicTypes, data: bytes, offset: int,  endianness:str):
+    """
+    Parse the data at the given position for the given type.
+
+    :param position: The position to parse from
+    :param atype: The type of data to parse
+    :param data: The data to parse
+    :param offset: The offset to start parsing from
+    :param endianness: The endianness of the data
+    :return: The parsed data
+    """
     parse_int16 = functools.partial(unpack, length=2, format_specifier="u2")
     parse_int32 = functools.partial(unpack, length=4, format_specifier="i4")
     parse_float = functools.partial(unpack, length=4, format_specifier="f4")
