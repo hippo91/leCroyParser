@@ -372,6 +372,21 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarra
     )
 
 
+def parse_data_from_file(filename: str, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
+    """
+    Parse the data from a leCroy binary waveform file.
+
+    :param filename: Path to the leCroy binary waveform file
+    :param sparse: Number of points to skip in the x and y data
+    :param secondDigits: Number of digits after the decimal point for seconds
+    :return: Tuple of data and metadata
+    """
+    assert filename.endswith(".trc")
+    with open(filename, "rb") as f:
+        content = f.read()
+    return parse_data(content, sparse=sparse, secondDigits=secondDigits)
+
+
 def dump(
     data: np.ndarray,
     metadata: Optional[MetaData] = None,
@@ -402,9 +417,6 @@ def convert_to_text_file(filename: str) -> None:
     :param filename: Path to the leCroy binary waveform file
     :return: None
     """
-    assert filename.endswith(".trc")
-    with open(filename, "rb") as f:
-        content = f.read()
-    data, meta = parse_data(content)
+    data, meta = parse_data_from_file(filename)
     output_name = filename.replace(".trc", ".dat")
     dump(data, metadata=meta, output_filename=output_name)
