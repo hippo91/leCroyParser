@@ -372,6 +372,27 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarra
     )
 
 
+def parse_data_from_multiple_files(
+    filenames: list[str], sparse=-1, secondDigits: int = 3
+) -> tuple[np.ndarray, MetaData]:
+    """
+    Parse the data from multiple leCroy binary waveform files.
+
+    :param filenames: List of paths to the leCroy binary waveform files
+    :param sparse: Number of points to skip in the x and y data
+    :param secondDigits: Number of digits after the decimal point for seconds
+    :return: Tuple of data and metadata
+    """
+    data = np.ndarray([])
+    for filename in filenames:
+        assert filename.endswith(".trc")
+        data_temp, _ = parse_data_from_file(
+            filename, sparse=sparse, secondDigits=secondDigits
+        )
+        data = np.column_stack((data, data_temp[:, 1])) if data.size else data_temp
+    return data
+
+
 def parse_data_from_file(filename: str, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
     """
     Parse the data from a leCroy binary waveform file.
