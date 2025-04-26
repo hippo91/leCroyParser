@@ -124,26 +124,25 @@ def parse_time_stamp(
     return full_format.format(year, month, day, hour, minute, second)
 
 
-def parse_time_base(
-    pos: int,
-    *,
-    data: bytes,
-    offset: int,
-    endianness: str
-):
-    """time base is an integer, and encodes timing information as follows:
+def convert_time_base(
+    time_base_number: int):
+    """Convert the time base number to a human-readable format.
+    The time base number is an integer that encodes timing information as follows:
     0 : 1 ps  / div
     1:  2 ps / div
-    2:  5 ps/div, up to 47 = 5 ks / div. 100 for external clock"""
+    2:  5 ps/div, up to 47 = 5 ks / div. 100 for external clock
 
-    time_base_number = parse(pos, atype=AtomicTypes.INT16, data=data, offset=offset, endianness=endianness)
-
+    :param time_base_number: The time base number to convert
+    :return: The human-readable time base
+    """
     if time_base_number < 48:
         unit = "pnum k"[int(time_base_number / 9)]
         value = [1, 2, 5, 10, 20, 50, 100, 200, 500][time_base_number % 9]
         return "{} ".format(value) + unit.strip() + "s/div"
     elif time_base_number == 100:
         return "EXTERNAL"
+    else:
+        raise ValueError("Invalid time base number")
     
 
 def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
@@ -168,7 +167,7 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
     prs_float = functools.partial(parse, atype=AtomicTypes.FLOAT, data=data, offset=posWAVEDESC, endianness=endianness)
     prs_dble = functools.partial(parse, atype=AtomicTypes.DOUBLE, data=data, offset=posWAVEDESC, endianness=endianness)
     prs_time_stamp = functools.partial(parse_time_stamp, data=data, offset=posWAVEDESC, endianness=endianness, second_digits=secondDigits)
-    prs_time_base = functools.partial(parse_time_base, data=data, offset=posWAVEDESC, endianness=endianness)
+    prs_time_base = compose(convert_time_base, prs_int16)
 
     templateName = prs_string(16)
     commType = prs_int16(32)  # encodes whether data is stored as 8 or 16bit
