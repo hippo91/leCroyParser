@@ -2,6 +2,7 @@ from enum import Enum
 import functools
 from collections import namedtuple
 import sys
+from typing import Optional
 
 import numpy as np
 
@@ -236,7 +237,7 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
     )
 
 
-def dump(data: np.ndarray, output_filename: str = None):
+def dump(data: np.ndarray, metadata: Optional[MetaData] = None, output_filename: Optional[str] = None):
     """
     Dump the content of the data object to the console or to the file in argument if any.
     This function prints the x and y data in a formatted manner.
@@ -245,12 +246,12 @@ def dump(data: np.ndarray, output_filename: str = None):
     :param data: object containing the waveform data
     :return: None
     """
-    print(f"data.shape: {data.shape}")
     assert(data.shape[1] == 2)
+    writer = functools.partial(np.savetxt, X=data, header=str(metadata), fmt="%+15.12e")
     if output_filename:
-        np.savetxt(output_filename, data, fmt="%+15.12e")
+        writer(output_filename)
     else:
-        np.savetxt(sys.stdout, data, fmt="%+15.12e")
+        writer(sys.stdout)
 
 
 def convert_to_text_file(filename: str):
@@ -267,4 +268,4 @@ def convert_to_text_file(filename: str):
         content = f.read()
     data, meta = parse_data(content)
     output_name = filename.replace(".trc", ".dat")
-    dump(data, output_filename=output_name)
+    dump(data, metadata=meta, output_filename=output_name)
