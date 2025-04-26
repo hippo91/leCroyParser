@@ -6,7 +6,7 @@ from typing import Optional
 
 import numpy as np
 
-AtomicTypes = Enum("AtomicTypes", "INT16 INT32 FLOAT DOUBLE BYTE WORD")
+AtomicTypes = Enum("AtomicTypes", "INT16 INT32 FLOAT DOUBLE BYTE WORD STRING16")
 
 MetaData = namedtuple("MetaData", [
     "templateName",
@@ -37,7 +37,7 @@ MetaData = namedtuple("MetaData", [
 ])
 
 
-def unpack(*, data: bytes, offset: int, position: int, length: int, endianness: str, format_specifier: str):
+def unpack(*, data: bytes, offset: int, position: int, length: int, endianness: str, format_specifier: str) -> np.ndarray:
     """
     Unpack the data from the given position and length.
     
@@ -53,7 +53,7 @@ def unpack(*, data: bytes, offset: int, position: int, length: int, endianness: 
     return np.frombuffer(data[shifted_position : shifted_position + length], f"{endianness}{format_specifier}", count=1)[0]
 
 
-def parse(position: int, * , atype: AtomicTypes, data: bytes, offset: int,  endianness:str):
+def parse(position: int, * , atype: AtomicTypes, data: bytes, offset: int,  endianness:str) -> np.ndarray:
     """
     Parse the data at the given position for the given type.
 
@@ -70,6 +70,7 @@ def parse(position: int, * , atype: AtomicTypes, data: bytes, offset: int,  endi
     parse_dble = functools.partial(unpack, length=8, format_specifier="f8")
     parse_byte = functools.partial(unpack, length=1, format_specifier="u1")
     parse_word = functools.partial(unpack, length=2, format_specifier="i2")
+    parse_string = functools.partial(unpack, length=16, format_specifier="S16")
     match atype:
         case AtomicTypes.INT16:
             return parse_int16(data=data, offset=offset, position=position, endianness=endianness)
@@ -83,19 +84,19 @@ def parse(position: int, * , atype: AtomicTypes, data: bytes, offset: int,  endi
             return parse_byte(data=data, offset=offset, position=position, endianness=endianness)
         case AtomicTypes.WORD:
             return parse_word(data=data, offset=offset, position=position, endianness=endianness)
+        case AtomicTypes.STRING16:
+            return parse_string(data=data, offset=offset, position=position, endianness=endianness)
 
 
-def parse_string(
-    position: int,
-    *,
-    data: bytes,
-    offset: int,
-    endianness: str,
-    length: int = 16,
-):
-    s = unpack(data=data, offset=offset, position=position, length=length, endianness=endianness, format_specifier=f"S{length}")
-    s = s.decode("ascii")
-    return s
+def compose(f, g):
+    """
+    Compose two functions.
+
+    :param f: The first function
+    :param g: The second function
+    :return: The composed function
+    """
+    return lambda x: f(g(x))
 
 
 def parse_time_stamp(
@@ -161,7 +162,7 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
     
     commOrder = parse(34, atype=AtomicTypes.INT16, data=data, offset=posWAVEDESC, endianness="<")  # big endian (>) if 0, else little
     endianness = [">", "<"][commOrder]
-    prs_string = functools.partial(parse_string, data=data, offset=posWAVEDESC, endianness=endianness)
+    prs_string = compose(bytes.decode, functools.partial(parse, atype=AtomicTypes.STRING16, data=data, offset=posWAVEDESC, endianness=endianness))
     prs_int16 = functools.partial(parse, atype=AtomicTypes.INT16, data=data, offset=posWAVEDESC, endianness=endianness)
     prs_int32 = functools.partial(parse, atype=AtomicTypes.INT32, data=data, offset=posWAVEDESC, endianness=endianness)
     prs_float = functools.partial(parse, atype=AtomicTypes.FLOAT, data=data, offset=posWAVEDESC, endianness=endianness)
