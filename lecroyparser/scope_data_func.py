@@ -160,7 +160,7 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
     trigTimeArray = prs_int32(48)
     waveArray1 = prs_int32(60)
 
-    instrumentName = prs_string(position=76)
+    instrumentName = prs_string(76)
     instrumentNumber = prs_int32(92)
 
     traceLabel = "NOT PARSED"
