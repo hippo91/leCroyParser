@@ -76,8 +76,7 @@ def parse_string(
     length: int = 16,
 ):
     s = unpack(data=data, offset=offset, position=position, length=length, endianness=endianness, format_specifier=f"S{length}")
-    if sys.version_info > (3, 0):
-        s = s.decode("ascii")
+    s = s.decode("ascii")
     return s
 
 
