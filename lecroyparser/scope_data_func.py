@@ -138,7 +138,7 @@ def convert_time_stamp(
     months: np.ndarray,
     years: np.ndarray,
     second_digits: int = 3,
-):
+) -> str:
     """
     Convert the time stamp to a human-readable format.
 
@@ -157,7 +157,7 @@ def convert_time_stamp(
     return full_format.format(years, months, days, hours, minutes, seconds)
 
 
-def convert_time_base(time_base_number: int):
+def convert_time_base(time_base_number: int) -> str:
     """Convert the time base number to a human-readable format.
     The time base number is an integer that encodes timing information as follows:
     0 : 1 ps  / div
@@ -177,7 +177,7 @@ def convert_time_base(time_base_number: int):
         raise ValueError("Invalid time base number")
 
 
-def parse_data(data: bytes, sparse=-1, secondDigits: int = 3):
+def parse_data(data: bytes, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
     """Parse the data."""
     waveSourceList = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
     verticalCouplingList = ["DC50", "GND", "DC1M", "GND", "AC1M"]
