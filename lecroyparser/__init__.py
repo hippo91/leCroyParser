@@ -20,15 +20,11 @@ Updated 2020 Jeroen van Oorschot, Eindhoven University of Technology
 """
 
 import argparse
-from scope_data import ScopeData
-from utils import convert_to_text_file
+from scope_data_func import convert_to_text_file
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse leCroy binary waveform data')
     parser.add_argument('path', type=str, help='Path to the leCroy binary waveform file')
     args = parser.parse_args()
-    data = ScopeData(args.path)
-    # data = ScopeData(args.path, parseAll=True)
-    print(data)
     convert_to_text_file(args.path)
