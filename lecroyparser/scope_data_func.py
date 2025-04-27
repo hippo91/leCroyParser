@@ -71,7 +71,7 @@ def unpack(
 
 def parse(
     position: int, *, atype: AtomicTypes, data: bytes, offset: int, endianness: str
-) -> Any:
+) -> np.uint16|np.int32|np.float32|np.float64|np.uint8|np.int16|str:
     """
     Parse the data at the given position for the given type.
 
@@ -420,7 +420,7 @@ def parse_data_from_multiple_files(
 
 
 def parse_data_from_file(
-    filename: str, sparse=-1, secondDigits: int = 3
+    filename: str, sparse: int = -1, secondDigits: int = 3
 ) -> tuple[np.ndarray, MetaData]:
     """
     Parse the data from a leCroy binary waveform file.

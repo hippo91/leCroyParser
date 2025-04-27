@@ -1,0 +1,9 @@
+[tool.mypy]
+# This is a stub file for mypy configuration.
+# You can add your own mypy configuration options here.
+# For example, to enable strict type checking, you can uncomment the following line:
+strict = true
+# To ignore missing imports, you can uncomment the following line:
+# ignore_missing_imports = true
+# To enable or disable specific plugins, you can uncomment the following lines:
+plugins = ["numpy.typing.mypy_plugin"]
