@@ -3,6 +3,7 @@ import functools
 from collections import namedtuple
 import sys
 from typing import Optional
+fromp pathlib import Path
 
 import numpy as np
 
@@ -370,6 +371,26 @@ def parse_data(data: bytes, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarra
         bandwidthLimit=bandwidthLimit,
         waveSource=waveSource,
     )
+
+
+def find_channels_files(first_channel_file_path: str) -> list[str]:
+    """
+    Find all leCroy binary waveform files in the given directory.
+
+    :param first_channel_file_path: Path to the first channel file
+    :return: List of paths to the leCroy binary waveform files
+    """
+    filepath = Path(first_channel_file_path)
+    dir_path = filepath.parent
+    filename = filepath.name
+    if not filename.endswith(".trc"):
+        raise ValueError("The file must be a .trc file")
+    if not filename.startswith("C"):
+        raise ValueError("The file must start with C")
+    if not dir_path.is_dir():
+        raise ValueError("The path must be a directory")
+    channel_common_part = filename[2:]
+    return [str(_path) for _path in dir_path.glob(f"C[0-9]{channel_common_part}")]
 
 
 def parse_data_from_multiple_files(
