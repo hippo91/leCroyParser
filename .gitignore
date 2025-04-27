@@ -10,3 +10,6 @@
 
 # .rst backups
 *.rst~
+
+# development environment
+dev_env
