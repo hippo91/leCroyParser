@@ -453,7 +453,7 @@ def dump(
         writer(sys.stdout)
 
 
-def convert_to_text_file(filename: str) -> None:
+def convert_to_text_file(filename: str, sparse: int = -1, secondDigits: int = 3, parseAll: bool = False) -> None:
     """
     Convert a leCroy binary waveform file to a text file.
     The text file will contain the x and y data in a formatted manner.
@@ -462,6 +462,10 @@ def convert_to_text_file(filename: str) -> None:
     :param filename: Path to the leCroy binary waveform file
     :return: None
     """
-    data, meta = parse_data_from_file(filename)
+    if parseAll:
+        filenames = find_channels_files(filename)
+        data, meta = parse_data_from_multiple_files(filenames, sparse=sparse, secondDigits=secondDigits)
+    else:
+        data, meta = parse_data_from_file(filename, sparse=sparse, secondDigits=secondDigits)
     output_name = filename.replace(".trc", ".dat")
     dump(data, metadata=meta, output_filename=output_name)
