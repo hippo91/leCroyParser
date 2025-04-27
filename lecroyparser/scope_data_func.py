@@ -2,10 +2,20 @@ from enum import Enum
 import functools
 from collections import namedtuple
 import sys
-from typing import Any, Optional
+from typing import Any, Optional, Callable, cast 
 from pathlib import Path
 
 import numpy as np
+
+from lecroyparser.type_utils import (
+    Int16Parsing,
+    Int32Parsing,
+    FloatParsing,
+    DoubleParsing,
+    ByteParsing,
+    WordParsing,
+    StringParsing,
+)
 
 AtomicTypes = Enum("AtomicTypes", "INT16 INT32 FLOAT DOUBLE BYTE WORD STRING16")
 
@@ -71,7 +81,7 @@ def unpack(
 
 def parse(
     position: int, *, atype: AtomicTypes, data: bytes, offset: int, endianness: str
-) -> np.uint16|np.int32|np.float32|np.float64|np.uint8|np.int16|str:
+) -> np.uint16 | np.int32 | np.float32 | np.float64 | np.uint8 | np.int16 | str:
     """
     Parse the data at the given position for the given type.
 
@@ -82,13 +92,23 @@ def parse(
     :param endianness: The endianness of the data
     :return: The parsed data
     """
-    parse_int16 = functools.partial(unpack, length=2, format_specifier="u2")
-    parse_int32 = functools.partial(unpack, length=4, format_specifier="i4")
-    parse_float = functools.partial(unpack, length=4, format_specifier="f4")
-    parse_dble = functools.partial(unpack, length=8, format_specifier="f8")
-    parse_byte = functools.partial(unpack, length=1, format_specifier="u1")
-    parse_word = functools.partial(unpack, length=2, format_specifier="i2")
-    parse_string = functools.partial(unpack, length=16, format_specifier="S16")
+    parse_int16: Int16Parsing = functools.partial(
+        unpack, length=2, format_specifier="u2"
+    )
+    parse_int32: Int32Parsing = functools.partial(
+        unpack, length=4, format_specifier="i4"
+    )
+    parse_float: FloatParsing = functools.partial(
+        unpack, length=4, format_specifier="f4"
+    )
+    parse_dble: DoubleParsing = functools.partial(
+        unpack, length=8, format_specifier="f8"
+    )
+    parse_byte: ByteParsing = functools.partial(unpack, length=1, format_specifier="u1")
+    parse_word: WordParsing = functools.partial(unpack, length=2, format_specifier="i2")
+    parse_string: StringParsing = functools.partial(
+        unpack, length=16, format_specifier="S16"
+    )
     match atype:
         case AtomicTypes.INT16:
             return parse_int16(
@@ -120,7 +140,7 @@ def parse(
             ).decode()
 
 
-def compose(f, g):
+def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any], Any]:
     """
     Compose two functions.
 
@@ -132,12 +152,12 @@ def compose(f, g):
 
 
 def convert_time_stamp(
-    seconds: np.ndarray,
-    minutes: np.ndarray,
-    hours: np.ndarray,
-    days: np.ndarray,
-    months: np.ndarray,
-    years: np.ndarray,
+    seconds: np.float64,
+    minutes: np.uint8,
+    hours: np.uint8,
+    days: np.uint8,
+    months: np.uint8,
+    years: np.int16,
     second_digits: int = 3,
 ) -> str:
     """
@@ -171,7 +191,7 @@ def convert_time_base(time_base_number: int) -> str:
     if time_base_number < 48:
         unit = "pnum k"[int(time_base_number / 9)]
         value = [1, 2, 5, 10, 20, 50, 100, 200, 500][time_base_number % 9]
-        return "{} ".format(value) + unit.strip() + "s/div"
+        return "f{value} " + unit.strip() + "s/div"
     elif time_base_number == 100:
         return "EXTERNAL"
     else:
@@ -182,10 +202,10 @@ def parse_data(
     data: bytes, sparse: int = -1, secondDigits: int = 3
 ) -> tuple[np.ndarray, MetaData]:
     """Parse the data."""
-    waveSourceList = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
-    verticalCouplingList = ["DC50", "GND", "DC1M", "GND", "AC1M"]
-    bandwidthLimitList = ["off", "on"]
-    recordTypeList = [
+    wave_source_list = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
+    vertical_coupling_list = ["DC50", "GND", "DC1M", "GND", "AC1M"]
+    bandwidth_limit_list = ["off", "on"]
+    record_type_list = [
         "single_sweep",
         "interleaved",
         "histogram",
@@ -211,10 +231,10 @@ def parse_data(
     # convert the first 50 bytes to a string to find position of substring WAVEDESC
     posWAVEDESC = data[:50].decode("ascii", "replace").index("WAVEDESC")
 
-    commOrder = parse(
+    comm_order = cast(int, parse(
         34, atype=AtomicTypes.INT16, data=data, offset=posWAVEDESC, endianness="<"
-    )  # big endian (>) if 0, else little
-    endianness = [">", "<"][commOrder]
+    ))  # big endian (>) if 0, else little
+    endianness = [">", "<"][comm_order]
     prs_string = functools.partial(
         parse,
         atype=AtomicTypes.STRING16,
@@ -229,6 +249,7 @@ def parse_data(
         offset=posWAVEDESC,
         endianness=endianness,
     )
+    prs_index = compose(functools.partial(cast, int), prs_int16)
     prs_int32 = functools.partial(
         parse,
         atype=AtomicTypes.INT32,
@@ -266,74 +287,74 @@ def parse_data(
     )
     prs_time_base = compose(convert_time_base, prs_int16)
 
-    templateName = prs_string(16)
-    commType = prs_int16(32)  # encodes whether data is stored as 8 or 16bit
+    template_name = prs_string(16)
+    comm_type = prs_int16(32)  # encodes whether data is stored as 8 or 16bit
 
-    waveDescriptor = prs_int32(36)
-    userText = prs_int32(40)
-    trigTimeArray = prs_int32(48)
-    waveArray1 = prs_int32(60)
+    wave_descriptor = prs_int32(36)
+    user_text = prs_int32(40)
+    trig_time_array = prs_int32(48)
+    wave_array1 = prs_int32(60)
 
-    instrumentName = prs_string(76)
-    instrumentNumber = prs_int32(92)
+    instrument_name = prs_string(76)
+    instrument_number = prs_int32(92)
 
-    traceLabel = "NOT PARSED"
-    waveArrayCount = prs_int32(116)
+    trace_label = "NOT PARSED"
+    wave_array_count = prs_int32(116)
 
-    verticalGain = prs_float(156)
-    verticalOffset = prs_float(160)
+    vertical_gain = prs_float(156)
+    vertical_offset = prs_float(160)
 
-    nominalBits = prs_int16(172)
+    nominal_bits = prs_int16(172)
 
-    horizInterval = prs_float(176)
-    horizOffset = prs_dble(180)
+    horiz_interval = prs_float(176)
+    horiz_offset = prs_dble(180)
 
-    vertUnit = "NOT PARSED"
-    horUnit = "NOT PARSED"
+    vert_unit = "NOT PARSED"
+    hor_unit = "NOT PARSED"
 
-    sequenceSegments = prs_int32(144)
+    sequence_segments = prs_int32(144)
 
-    triggerSeconds = prs_dble(296)
-    triggerMinutes = prs_byte(304)
-    triggerHours = prs_byte(305)
-    triggerDays = prs_byte(306)
-    triggerMonths = prs_byte(307)
-    triggerYears = prs_word(308)
-    triggerTime = convert_time_stamp(
-        triggerSeconds,
-        triggerMinutes,
-        triggerHours,
-        triggerDays,
-        triggerMonths,
-        triggerYears,
+    trigger_seconds = cast(np.float64, prs_dble(296))
+    trigger_minutes = cast(np.uint8, prs_byte(304))
+    trigger_hours = cast(np.uint8, prs_byte(305))
+    trigger_days = cast(np.uint8, prs_byte(306))
+    trigger_months = cast(np.uint8, prs_byte(307))
+    trigger_years = cast(np.int16, prs_word(308))
+    trigger_time = convert_time_stamp(
+        trigger_seconds,
+        trigger_minutes,
+        trigger_hours,
+        trigger_days,
+        trigger_months,
+        trigger_years,
         second_digits=secondDigits,
     )
-    recordType = recordTypeList[prs_int16(316)]
-    processingDone = processingList[prs_int16(318)]
-    timeBase = prs_time_base(324)
-    verticalCoupling = verticalCouplingList[prs_int16(326)]
-    bandwidthLimit = bandwidthLimitList[prs_int16(334)]
-    waveSource = waveSourceList[prs_int16(344)]
+    record_type = record_type_list[prs_index(316)]
+    processing_done = processingList[prs_index(318)]
+    time_base = prs_time_base(324)
+    vertical_coupling = vertical_coupling_list[prs_index(326)]
+    bandwidth_limit = bandwidth_limit_list[prs_index(334)]
+    wave_source = wave_source_list[prs_index(344)]
 
-    start = posWAVEDESC + waveDescriptor + userText + trigTimeArray
-    if commType == 0:  # data is stored in 8bit integers
+    start = posWAVEDESC + wave_descriptor + user_text + trig_time_array
+    if comm_type == 0:  # data is stored in 8bit integers
         y = np.frombuffer(
-            data[start : start + waveArray1],
-            dtype=np.dtype((endianness + "i1", waveArray1)),
+            data[start : start + wave_array1],
+            dtype=np.dtype((endianness + "i1", wave_array1)),
             count=1,
         )[0]
     else:  # 16 bit integers
-        length = waveArray1 // 2
+        length = wave_array1 // 2
         y = np.frombuffer(
-            data[start : start + waveArray1],
+            data[start : start + wave_array1],
             dtype=np.dtype((endianness + "i2", length)),
             count=1,
         )[0]
 
     # now scale the ADC values
-    y = verticalGain * np.array(y) - verticalOffset
+    y = vertical_gain * np.array(y) - vertical_offset
 
-    x = np.linspace(0, waveArrayCount * horizInterval, num=waveArrayCount) + horizOffset
+    x = np.linspace(0, wave_array_count * horiz_interval, num=wave_array_count) + horiz_offset
 
     if sparse > 0:
         indices = int(len(x) / sparse) * np.arange(sparse)
@@ -344,31 +365,31 @@ def parse_data(
     # Concatenate data.x and data.y into a bidimensional array
     combined_data = np.column_stack((x, y))
     return combined_data, MetaData(
-        templateName=templateName,
-        commType=commType,
-        waveDescriptor=waveDescriptor,
-        userText=userText,
-        trigTimeArray=trigTimeArray,
-        waveArray1=waveArray1,
-        instrumentName=instrumentName,
-        instrumentNumber=instrumentNumber,
-        traceLabel=traceLabel,
-        waveArrayCount=waveArrayCount,
-        verticalGain=verticalGain,
-        verticalOffset=verticalOffset,
-        nominalBits=nominalBits,
-        horizInterval=horizInterval,
-        horizOffset=horizOffset,
-        vertUnit=vertUnit,
-        horUnit=horUnit,
-        sequenceSegments=sequenceSegments,
-        triggerTime=triggerTime,
-        recordType=recordType,
-        processingDone=processingDone,
-        timeBase=timeBase,
-        verticalCoupling=verticalCoupling,
-        bandwidthLimit=bandwidthLimit,
-        waveSource=waveSource,
+        templateName=template_name,
+        commType=comm_type,
+        waveDescriptor=wave_descriptor,
+        userText=user_text,
+        trigTimeArray=trig_time_array,
+        waveArray1=wave_array1,
+        instrumentName=instrument_name,
+        instrumentNumber=instrument_number,
+        traceLabel=trace_label,
+        waveArrayCount=wave_array_count,
+        verticalGain=vertical_gain,
+        verticalOffset=vertical_offset,
+        nominalBits=nominal_bits,
+        horizInterval=horiz_interval,
+        horizOffset=horiz_offset,
+        vertUnit=vert_unit,
+        horUnit=hor_unit,
+        sequenceSegments=sequence_segments,
+        triggerTime=trigger_time,
+        recordType=record_type,
+        processingDone=processing_done,
+        timeBase=time_base,
+        verticalCoupling=vertical_coupling,
+        bandwidthLimit=bandwidth_limit,
+        waveSource=wave_source,
     )
 
 
