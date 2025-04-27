@@ -405,13 +405,16 @@ def parse_data_from_multiple_files(
     :return: Tuple of data and metadata
     """
     data = np.ndarray([])
+    meta = None
     for filename in filenames:
         assert filename.endswith(".trc")
-        data_temp, _ = parse_data_from_file(
+        data_temp, meta_temp = parse_data_from_file(
             filename, sparse=sparse, secondDigits=secondDigits
         )
         data = np.column_stack((data, data_temp[:, 1])) if data.size else data_temp
-    return data
+        if meta is None:
+            meta = meta_temp
+    return data, meta
 
 
 def parse_data_from_file(filename: str, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
