@@ -26,5 +26,8 @@ from scope_data_func import convert_to_text_file
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Parse leCroy binary waveform data')
     parser.add_argument('path', type=str, help='Path to the leCroy binary waveform file')
+    parser.add_argument('--sparse', type=int, default=-1, help='Number of points to sample from the data')
+    parser.add_argument('--secondDigits', type=int, default=3, help='Number of decimal places for the second axis')
+    parser.add_argument('--parseAll', action='store_true', help='Parse all files in the directory that match the pattern C1...Cx')
     args = parser.parse_args()
-    convert_to_text_file(args.path)
+    convert_to_text_file(args.path, args.sparse, args.secondDigits, args.parseAll)
