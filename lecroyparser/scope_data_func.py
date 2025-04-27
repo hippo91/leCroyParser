@@ -2,7 +2,7 @@ from enum import Enum
 import functools
 from collections import namedtuple
 import sys
-from typing import Optional
+from typing import Any, Optional
 from pathlib import Path
 
 import numpy as np
@@ -49,7 +49,7 @@ def unpack(
     length: int,
     endianness: str,
     format_specifier: str,
-) -> np.ndarray:
+) -> Any:
     """
     Unpack the data from the given position and length.
 
@@ -71,7 +71,7 @@ def unpack(
 
 def parse(
     position: int, *, atype: AtomicTypes, data: bytes, offset: int, endianness: str
-) -> np.ndarray:
+) -> Any:
     """
     Parse the data at the given position for the given type.
 
@@ -178,7 +178,9 @@ def convert_time_base(time_base_number: int) -> str:
         raise ValueError("Invalid time base number")
 
 
-def parse_data(data: bytes, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
+def parse_data(
+    data: bytes, sparse: int = -1, secondDigits: int = 3
+) -> tuple[np.ndarray, MetaData]:
     """Parse the data."""
     waveSourceList = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
     verticalCouplingList = ["DC50", "GND", "DC1M", "GND", "AC1M"]
@@ -394,7 +396,7 @@ def find_channels_files(first_channel_file_path: str) -> list[str]:
 
 
 def parse_data_from_multiple_files(
-    filenames: list[str], sparse=-1, secondDigits: int = 3
+    filenames: list[str], sparse: int = -1, secondDigits: int = 3
 ) -> tuple[np.ndarray, MetaData]:
     """
     Parse the data from multiple leCroy binary waveform files.
@@ -417,7 +419,9 @@ def parse_data_from_multiple_files(
     return data, meta
 
 
-def parse_data_from_file(filename: str, sparse=-1, secondDigits: int = 3) -> tuple[np.ndarray, MetaData]:
+def parse_data_from_file(
+    filename: str, sparse=-1, secondDigits: int = 3
+) -> tuple[np.ndarray, MetaData]:
     """
     Parse the data from a leCroy binary waveform file.
 
@@ -453,7 +457,9 @@ def dump(
         writer(sys.stdout)
 
 
-def convert_to_text_file(filename: str, sparse: int = -1, secondDigits: int = 3, parseAll: bool = False) -> None:
+def convert_to_text_file(
+    filename: str, sparse: int = -1, secondDigits: int = 3, parseAll: bool = False
+) -> None:
     """
     Convert a leCroy binary waveform file to a text file.
     The text file will contain the x and y data in a formatted manner.
@@ -464,8 +470,12 @@ def convert_to_text_file(filename: str, sparse: int = -1, secondDigits: int = 3,
     """
     if parseAll:
         filenames = find_channels_files(filename)
-        data, meta = parse_data_from_multiple_files(filenames, sparse=sparse, secondDigits=secondDigits)
+        data, meta = parse_data_from_multiple_files(
+            filenames, sparse=sparse, secondDigits=secondDigits
+        )
     else:
-        data, meta = parse_data_from_file(filename, sparse=sparse, secondDigits=secondDigits)
+        data, meta = parse_data_from_file(
+            filename, sparse=sparse, secondDigits=secondDigits
+        )
     output_name = filename.replace(".trc", ".dat")
     dump(data, metadata=meta, output_filename=output_name)
