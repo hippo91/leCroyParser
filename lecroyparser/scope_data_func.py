@@ -117,7 +117,7 @@ def parse(
         case AtomicTypes.STRING16:
             return parse_string(
                 data=data, offset=offset, position=position, endianness=endianness
-            )
+            ).decode()
 
 
 def compose(f, g):
@@ -215,15 +215,12 @@ def parse_data(
         34, atype=AtomicTypes.INT16, data=data, offset=posWAVEDESC, endianness="<"
     )  # big endian (>) if 0, else little
     endianness = [">", "<"][commOrder]
-    prs_string = compose(
-        bytes.decode,
-        functools.partial(
-            parse,
-            atype=AtomicTypes.STRING16,
-            data=data,
-            offset=posWAVEDESC,
-            endianness=endianness,
-        ),
+    prs_string = functools.partial(
+        parse,
+        atype=AtomicTypes.STRING16,
+        data=data,
+        offset=posWAVEDESC,
+        endianness=endianness,
     )
     prs_int16 = functools.partial(
         parse,
