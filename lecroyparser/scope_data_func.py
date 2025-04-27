@@ -3,7 +3,7 @@ import functools
 from collections import namedtuple
 import sys
 from typing import Optional
-fromp pathlib import Path
+from pathlib import Path
 
 import numpy as np
 
