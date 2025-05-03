@@ -5,6 +5,7 @@ Reimplements initial ScopeData class from the original lecroyparser
 but with a functional approach.
 Introduces type hints and uses numpy for data handling.
 """
+
 from enum import Enum
 import functools
 from collections import namedtuple
@@ -59,7 +60,7 @@ MetaData = namedtuple(
 )
 
 
-def unpack( # pylint: disable=too-many-arguments
+def unpack(  # pylint: disable=too-many-arguments
     *,
     data: bytes,
     offset: int,
@@ -87,7 +88,7 @@ def unpack( # pylint: disable=too-many-arguments
     )[0]
 
 
-def parse( # pylint: disable=too-many-return-statements
+def parse(  # pylint: disable=too-many-return-statements
     position: int, *, atype: AtomicTypes, data: bytes, offset: int, endianness: str
 ) -> np.uint16 | np.int32 | np.float32 | np.float64 | np.uint8 | np.int16 | str:
     """
@@ -159,7 +160,7 @@ def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any],
     return lambda x: f(g(x))
 
 
-def convert_time_stamp( # pylint: disable=too-many-arguments, too-many-positional-arguments
+def convert_time_stamp(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     seconds: np.float64,
     minutes: np.uint8,
     hours: np.uint8,
@@ -198,14 +199,16 @@ def convert_time_base(time_base_number: int) -> str:
     """
     if time_base_number < 48:
         unit = "pnum k"[int(time_base_number / 9)]
-        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][time_base_number % 9] # pylint: disable=unused-variable
+        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][  # pylint: disable=unused-variable
+            time_base_number % 9
+        ]
         return "f{value} " + unit.strip() + "s/div"
     if time_base_number == 100:
         return "EXTERNAL"
     raise ValueError("Invalid time base number")
 
 
-def parse_data( # pylint: disable=too-many-locals, too-many-statements
+def parse_data(  # pylint: disable=too-many-locals, too-many-statements
     data: bytes, sparse: int = -1, second_digits: int = 3
 ) -> tuple[npt.NDArray[np.floating[Any]], MetaData]:
     """Parse the data."""
@@ -238,60 +241,84 @@ def parse_data( # pylint: disable=too-many-locals, too-many-statements
     # convert the first 50 bytes to a string to find position of substring WAVEDESC
     pos_wavedesc = data[:50].decode("ascii", "replace").index("WAVEDESC")
 
-    comm_order = cast(int, parse(
-        34, atype=AtomicTypes.INT16, data=data, offset=pos_wavedesc, endianness="<"
-    ))  # big endian (>) if 0, else little
+    comm_order = cast(
+        int,
+        parse(
+            34, atype=AtomicTypes.INT16, data=data, offset=pos_wavedesc, endianness="<"
+        ),
+    )  # big endian (>) if 0, else little
     endianness = [">", "<"][comm_order]
-    prs_string = cast(functools.partial[str], functools.partial(
-        parse,
-        atype=AtomicTypes.STRING16,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
-    prs_int16 = cast(functools.partial[np.int16], functools.partial(
-        parse,
-        atype=AtomicTypes.INT16,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
+    prs_string = cast(
+        functools.partial[str],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.STRING16,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
+    prs_int16 = cast(
+        functools.partial[np.int16],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.INT16,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
     prs_index = compose(functools.partial(cast, int), prs_int16)
-    prs_int32  = cast(functools.partial[np.int32], functools.partial(
-        parse,
-        atype=AtomicTypes.INT32,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
-    prs_float = cast(functools.partial[np.float32], functools.partial(
-        parse,
-        atype=AtomicTypes.FLOAT,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
-    prs_dble = cast(functools.partial[np.float64], functools.partial(
-        parse,
-        atype=AtomicTypes.DOUBLE,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
-    prs_byte = cast(functools.partial[np.uint8], functools.partial(
-        parse,
-        atype=AtomicTypes.BYTE,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
-    prs_word = cast(functools.partial[np.int16], functools.partial(
-        parse,
-        atype=AtomicTypes.WORD,
-        data=data,
-        offset=pos_wavedesc,
-        endianness=endianness,
-    ))
+    prs_int32 = cast(
+        functools.partial[np.int32],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.INT32,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
+    prs_float = cast(
+        functools.partial[np.float32],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.FLOAT,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
+    prs_dble = cast(
+        functools.partial[np.float64],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.DOUBLE,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
+    prs_byte = cast(
+        functools.partial[np.uint8],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.BYTE,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
+    prs_word = cast(
+        functools.partial[np.int16],
+        functools.partial(
+            parse,
+            atype=AtomicTypes.WORD,
+            data=data,
+            offset=pos_wavedesc,
+            endianness=endianness,
+        ),
+    )
     prs_time_base = compose(convert_time_base, prs_int16)
 
     template_name = prs_string(16)
@@ -361,7 +388,10 @@ def parse_data( # pylint: disable=too-many-locals, too-many-statements
     # now scale the ADC values
     y = vertical_gain * np.array(y) - vertical_offset
 
-    x = np.linspace(0, wave_array_count * horiz_interval, num=wave_array_count) + horiz_offset
+    x = (
+        np.linspace(0, wave_array_count * horiz_interval, num=wave_array_count)
+        + horiz_offset
+    )
 
     if sparse > 0:
         indices = int(len(x) / sparse) * np.arange(sparse)
@@ -422,7 +452,7 @@ def find_channels_files(first_channel_file_path: str) -> list[str]:
 
 def parse_data_from_multiple_files(
     filenames: list[str], sparse: int = -1, second_digits: int = 3
-) -> tuple[npt.NDArray[np.floating[Any]], MetaData|None]:
+) -> tuple[npt.NDArray[np.floating[Any]], MetaData | None]:
     """
     Parse the data from multiple leCroy binary waveform files.
 
@@ -431,7 +461,7 @@ def parse_data_from_multiple_files(
     :param secondDigits: Number of digits after the decimal point for seconds
     :return: Tuple of data and metadata
     """
-    data : npt.NDArray[np.floating[Any]] = np.ndarray([])
+    data: npt.NDArray[np.floating[Any]] = np.ndarray([])
     meta = None
     for filename in filenames:
         assert filename.endswith(".trc")
