@@ -72,8 +72,8 @@ def parse_metadata(data: bytes, offset: int, endianness: str, second_digits: int
     # Add your parsing logic here
     binary_metadata = {}
     for name, prop in BinaryMetaDataStructure.items():
-        if prop == "NOT PARSED":
-            value = prop
+        if prop.atomic_type == AtomicType.undefined:
+            value = "NOT PARSED"
         elif prop.atomic_type == AtomicType.uint8:
             value = prs_uint8(prop.location)
         elif prop.atomic_type == AtomicType.uint16:
