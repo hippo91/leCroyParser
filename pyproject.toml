@@ -7,3 +7,10 @@ strict = true
 # ignore_missing_imports = true
 # To enable or disable specific plugins, you can uncomment the following lines:
 plugins = ["numpy.typing.mypy_plugin"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+    "integration",
+]
