@@ -7,7 +7,6 @@ Introduces type hints and uses numpy for data handling.
 """
 
 from functools import partial
-from collections import namedtuple
 import sys
 from typing import Any, Optional, Callable, cast
 from pathlib import Path
@@ -24,37 +23,7 @@ from lecroyparser.parsing import (
     parse_word,
     parse_string,
 )
-
-MetaData = namedtuple(
-    "MetaData",
-    [
-        "templateName",
-        "commType",
-        "waveDescriptor",
-        "userText",
-        "trigTimeArray",
-        "waveArray1",
-        "instrumentName",
-        "instrumentNumber",
-        "traceLabel",
-        "waveArrayCount",
-        "verticalGain",
-        "verticalOffset",
-        "nominalBits",
-        "horizInterval",
-        "horizOffset",
-        "vertUnit",
-        "horUnit",
-        "sequenceSegments",
-        "triggerTime",
-        "recordType",
-        "processingDone",
-        "timeBase",
-        "verticalCoupling",
-        "bandwidthLimit",
-        "waveSource",
-    ],
-)
+from lecroyparser.metadata import MetaData
 
 
 def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any], Any]:
