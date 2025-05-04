@@ -1,3 +1,6 @@
+"""
+Test the unpack function from parsing.py
+"""
 # mypy: ignore-errors
 from lecroyparser.parsing import unpack
 
