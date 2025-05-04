@@ -15,13 +15,13 @@ import numpy as np
 import numpy.typing as npt
 
 from lecroyparser.parsing import (
-    parse_int16,
+    parse_uint16,
     parse_int32,
-    parse_float,
-    parse_dble,
-    parse_byte,
-    parse_word,
-    parse_string,
+    parse_float32,
+    parse_float64,
+    parse_uint8,
+    parse_int16,
+    parse_bytes,
 )
 from lecroyparser.metadata import MetaData
 from lecroyparser.time_conversion import convert_time_stamp, convert_time_base
@@ -72,67 +72,67 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
     pos_wavedesc = data[:50].decode("ascii", "replace").index("WAVEDESC")
 
     # big endian (>) if 0, else little
-    comm_order = partial(parse_int16, data=data, offset=pos_wavedesc, endianness="<")(
+    comm_order = partial(parse_uint16, data=data, offset=pos_wavedesc, endianness="<")(
         34
     )
     endianness = [">", "<"][comm_order]
-    prs_string = partial(
-        parse_string, data=data, offset=pos_wavedesc, endianness=endianness
+    prs_bytes = partial(
+        parse_bytes, data=data, offset=pos_wavedesc, endianness=endianness
+    )
+    prs_uint16 = partial(
+        parse_uint16, data=data, offset=pos_wavedesc, endianness=endianness
+    )
+    prs_index = compose(partial(cast, int), prs_uint16)
+    prs_int32 = partial(
+        parse_int32, data=data, offset=pos_wavedesc, endianness=endianness
+    )
+    prs_float32 = partial(
+        parse_float32, data=data, offset=pos_wavedesc, endianness=endianness
+    )
+    prs_float64 = partial(
+        parse_float64, data=data, offset=pos_wavedesc, endianness=endianness
+    )
+    prs_uint8 = partial(
+        parse_uint8, data=data, offset=pos_wavedesc, endianness=endianness
     )
     prs_int16 = partial(
         parse_int16, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_index = compose(partial(cast, int), prs_int16)
-    prs_int32 = partial(
-        parse_int32, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_float = partial(
-        parse_float, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_dble = partial(
-        parse_dble, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_byte = partial(
-        parse_byte, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_word = partial(
-        parse_word, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_time_base = compose(convert_time_base, prs_int16)
+    prs_time_base = compose(convert_time_base, prs_uint16)
 
-    template_name = prs_string(16)
-    comm_type = prs_int16(32)  # encodes whether data is stored as 8 or 16bit
+    template_name = prs_bytes(16)
+    comm_type = prs_uint16(32)  # encodes whether data is stored as 8 or 16bit
 
     wave_descriptor = prs_int32(36)
     user_text = prs_int32(40)
     trig_time_array = prs_int32(48)
     wave_array1 = prs_int32(60)
 
-    instrument_name = prs_string(76)
+    instrument_name = prs_bytes(76)
     instrument_number = prs_int32(92)
 
     trace_label = "NOT PARSED"
     wave_array_count = prs_int32(116)
 
-    vertical_gain = prs_float(156)
-    vertical_offset = prs_float(160)
+    vertical_gain = prs_float32(156)
+    vertical_offset = prs_float32(160)
 
-    nominal_bits = prs_int16(172)
+    nominal_bits = prs_uint16(172)
 
-    horiz_interval = prs_float(176)
-    horiz_offset = prs_dble(180)
+    horiz_interval = prs_float32(176)
+    horiz_offset = prs_float64(180)
 
     vert_unit = "NOT PARSED"
     hor_unit = "NOT PARSED"
 
     sequence_segments = prs_int32(144)
 
-    trigger_seconds = prs_dble(296)
-    trigger_minutes = prs_byte(304)
-    trigger_hours = prs_byte(305)
-    trigger_days = prs_byte(306)
-    trigger_months = prs_byte(307)
-    trigger_years = prs_word(308)
+    trigger_seconds = prs_float64(296)
+    trigger_minutes = prs_uint8(304)
+    trigger_hours = prs_uint8(305)
+    trigger_days = prs_uint8(306)
+    trigger_months = prs_uint8(307)
+    trigger_years = prs_int16(308)
     trigger_time = convert_time_stamp(
         trigger_seconds,
         trigger_minutes,

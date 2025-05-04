@@ -39,10 +39,10 @@ def unpack(  # pylint: disable=too-many-arguments
     )[0]
 
 
-parse_int16: partial[np.uint16] = partial(unpack, length=2, format_specifier="u2")
+parse_uint16: partial[np.uint16] = partial(unpack, length=2, format_specifier="u2")
 parse_int32: partial[np.int32] = partial(unpack, length=4, format_specifier="i4")
-parse_float: partial[np.float32] = partial(unpack, length=4, format_specifier="f4")
-parse_dble: partial[np.float64] = partial(unpack, length=8, format_specifier="f8")
-parse_byte: partial[np.uint8] = partial(unpack, length=1, format_specifier="u1")
-parse_word: partial[np.int16] = partial(unpack, length=2, format_specifier="i2")
-parse_string: partial[bytes] = partial(unpack, length=16, format_specifier="S16")
+parse_float32: partial[np.float32] = partial(unpack, length=4, format_specifier="f4")
+parse_float64: partial[np.float64] = partial(unpack, length=8, format_specifier="f8")
+parse_uint8: partial[np.uint8] = partial(unpack, length=1, format_specifier="u1")
+parse_int16: partial[np.int16] = partial(unpack, length=2, format_specifier="i2")
+parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16")
