@@ -7,7 +7,7 @@ Introduces type hints and uses numpy for data handling.
 """
 
 from enum import Enum
-import functools
+from functools import partial
 from collections import namedtuple
 import sys
 from typing import Any, Optional, Callable, cast
@@ -16,17 +16,15 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from lecroyparser.type_utils import (
-    Int16Parsing,
-    Int32Parsing,
-    FloatParsing,
-    DoubleParsing,
-    ByteParsing,
-    WordParsing,
-    StringParsing,
+from lecroyparser.parsing import (
+    parse_int16,
+    parse_int32,
+    parse_float,
+    parse_dble,
+    parse_byte,
+    parse_word,
+    parse_string,
 )
-
-AtomicTypes = Enum("AtomicTypes", "INT16 INT32 FLOAT DOUBLE BYTE WORD STRING16")
 
 MetaData = namedtuple(
     "MetaData",
@@ -58,95 +56,6 @@ MetaData = namedtuple(
         "waveSource",
     ],
 )
-
-
-def unpack(  # pylint: disable=too-many-arguments
-    *,
-    data: bytes,
-    offset: int,
-    position: int,
-    length: int,
-    endianness: str,
-    format_specifier: str,
-) -> Any:
-    """
-    Unpack the data from the given position and length.
-
-    :param data: The data to unpack
-    :param offset: The offset to start unpacking from
-    :param position: The position to unpack from
-    :param length: The length of the data to unpack
-    :param endianness: The endianness of the data
-    :param format_specifier: The format specifier for unpacking
-    :return: The unpacked data
-    """
-    shifted_position = offset + position
-    return np.frombuffer(
-        data[shifted_position : shifted_position + length],
-        f"{endianness}{format_specifier}",
-        count=1,
-    )[0]
-
-
-def parse(  # pylint: disable=too-many-return-statements
-    position: int, *, atype: AtomicTypes, data: bytes, offset: int, endianness: str
-) -> np.uint16 | np.int32 | np.float32 | np.float64 | np.uint8 | np.int16 | str:
-    """
-    Parse the data at the given position for the given type.
-
-    :param position: The position to parse from
-    :param atype: The type of data to parse
-    :param data: The data to parse
-    :param offset: The offset to start parsing from
-    :param endianness: The endianness of the data
-    :return: The parsed data
-    """
-    parse_int16: Int16Parsing = functools.partial(
-        unpack, length=2, format_specifier="u2"
-    )
-    parse_int32: Int32Parsing = functools.partial(
-        unpack, length=4, format_specifier="i4"
-    )
-    parse_float: FloatParsing = functools.partial(
-        unpack, length=4, format_specifier="f4"
-    )
-    parse_dble: DoubleParsing = functools.partial(
-        unpack, length=8, format_specifier="f8"
-    )
-    parse_byte: ByteParsing = functools.partial(unpack, length=1, format_specifier="u1")
-    parse_word: WordParsing = functools.partial(unpack, length=2, format_specifier="i2")
-    parse_string: StringParsing = functools.partial(
-        unpack, length=16, format_specifier="S16"
-    )
-    match atype:
-        case AtomicTypes.INT16:
-            return parse_int16(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.INT32:
-            return parse_int32(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.FLOAT:
-            return parse_float(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.DOUBLE:
-            return parse_dble(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.BYTE:
-            return parse_byte(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.WORD:
-            return parse_word(
-                data=data, offset=offset, position=position, endianness=endianness
-            )
-        case AtomicTypes.STRING16:
-            return parse_string(
-                data=data, offset=offset, position=position, endianness=endianness
-            ).decode()
 
 
 def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any], Any]:
@@ -241,83 +150,32 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
     # convert the first 50 bytes to a string to find position of substring WAVEDESC
     pos_wavedesc = data[:50].decode("ascii", "replace").index("WAVEDESC")
 
-    comm_order = cast(
-        int,
-        parse(
-            34, atype=AtomicTypes.INT16, data=data, offset=pos_wavedesc, endianness="<"
-        ),
-    )  # big endian (>) if 0, else little
+    # big endian (>) if 0, else little
+    comm_order = partial(parse_int16, data=data, offset=pos_wavedesc, endianness="<")(
+        34
+    )
     endianness = [">", "<"][comm_order]
-    prs_string = cast(
-        functools.partial[str],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.STRING16,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_string = partial(
+        parse_string, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_int16 = cast(
-        functools.partial[np.int16],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.INT16,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_int16 = partial(
+        parse_int16, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_index = compose(functools.partial(cast, int), prs_int16)
-    prs_int32 = cast(
-        functools.partial[np.int32],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.INT32,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_index = compose(partial(cast, int), prs_int16)
+    prs_int32 = partial(
+        parse_int32, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_float = cast(
-        functools.partial[np.float32],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.FLOAT,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_float = partial(
+        parse_float, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_dble = cast(
-        functools.partial[np.float64],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.DOUBLE,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_dble = partial(
+        parse_dble, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_byte = cast(
-        functools.partial[np.uint8],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.BYTE,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_byte = partial(
+        parse_byte, data=data, offset=pos_wavedesc, endianness=endianness
     )
-    prs_word = cast(
-        functools.partial[np.int16],
-        functools.partial(
-            parse,
-            atype=AtomicTypes.WORD,
-            data=data,
-            offset=pos_wavedesc,
-            endianness=endianness,
-        ),
+    prs_word = partial(
+        parse_word, data=data, offset=pos_wavedesc, endianness=endianness
     )
     prs_time_base = compose(convert_time_base, prs_int16)
 
@@ -505,7 +363,7 @@ def dump(
     :return: None
     """
     assert data.shape[1] == 2
-    writer = functools.partial(np.savetxt, X=data, header=str(metadata), fmt="%+15.12e")
+    writer = partial(np.savetxt, X=data, header=str(metadata), fmt="%+15.12e")
     if output_filename:
         writer(output_filename)
     else:
