@@ -6,7 +6,6 @@ but with a functional approach.
 Introduces type hints and uses numpy for data handling.
 """
 
-from enum import Enum
 from functools import partial
 from collections import namedtuple
 import sys
