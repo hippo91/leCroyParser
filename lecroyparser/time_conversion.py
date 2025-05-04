@@ -47,10 +47,10 @@ def convert_time_base(time_base_number: int) -> str:
     """
     if time_base_number < 48:
         unit = "pnum k"[int(time_base_number / 9)]
-        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][  # pylint: disable=unused-variable
+        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][
             time_base_number % 9
         ]
-        return "f{value} " + unit.strip() + "s/div"
+        return f"{value} " + unit.strip() + "s/div"
     if time_base_number == 100:
         return "EXTERNAL"
-    raise ValueError("Invalid time base number")
+    raise ValueError(f"Invalid time base number: {time_base_number}")
