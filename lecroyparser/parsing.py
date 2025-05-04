@@ -82,17 +82,17 @@ def parse_metadata( # pylint: disable=too-many-locals
         if prop.atomic_type == AtomicType.undefined:
             binary_metadata[name] = "NOT PARSED"
         elif prop.atomic_type == AtomicType.uint8:
-            binary_metadata[name] = int(prs_uint8(prop.location))
+            binary_metadata[name] = prs_uint8(prop.location)
         elif prop.atomic_type == AtomicType.uint16:
-            binary_metadata[name] = int(prs_uint16(prop.location))
+            binary_metadata[name] = prs_uint16(prop.location)
         elif prop.atomic_type == AtomicType.int16:
-            binary_metadata[name] = int(prs_int16(prop.location))
+            binary_metadata[name] = prs_int16(prop.location)
         elif prop.atomic_type == AtomicType.int32:
-            binary_metadata[name] = int(prs_int32(prop.location))
+            binary_metadata[name] = prs_int32(prop.location)
         elif prop.atomic_type == AtomicType.float32:
-            binary_metadata[name] = float(prs_float32(prop.location))
+            binary_metadata[name] = prs_float32(prop.location)
         elif prop.atomic_type == AtomicType.float64:
-            binary_metadata[name] = float(prs_float64(prop.location))
+            binary_metadata[name] = prs_float64(prop.location)
         elif prop.atomic_type == AtomicType.bytes:
             binary_metadata[name] = prs_bytes(prop.location).decode()
         else:
