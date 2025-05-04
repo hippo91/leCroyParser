@@ -2,11 +2,12 @@
 LeCroy Parser
 This module provides functions to parse data from LeCroy oscilloscopes.
 It includes functions to unpack data from bytes using different formats and endianness.
-It also includes functions to parse specific data types such as int16, int32, float, double, 
+It also includes functions to parse specific data types such as int16, int32, float, double,
 byte, word, and string.
 """
-from typing import Any
+
 from functools import partial
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -52,7 +53,9 @@ parse_float64: partial[np.float64] = partial(unpack, length=8, format_specifier=
 parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16")
 
 
-def parse_metadata(data: bytes, offset: int, endianness: str, second_digits: int = 3) -> Any:
+def parse_metadata( # pylint: disable=too-many-locals
+    data: bytes, offset: int, endianness: str, second_digits: int = 3
+) -> Any:
     """
     Parse the metadata from the data.
 
@@ -63,42 +66,45 @@ def parse_metadata(data: bytes, offset: int, endianness: str, second_digits: int
     """
     prs_uint16 = partial(parse_uint16, data=data, offset=offset, endianness=endianness)
     prs_int32 = partial(parse_int32, data=data, offset=offset, endianness=endianness)
-    prs_float32 = partial(parse_float32, data=data, offset=offset, endianness=endianness)
-    prs_float64 = partial(parse_float64, data=data, offset=offset, endianness=endianness)
+    prs_float32 = partial(
+        parse_float32, data=data, offset=offset, endianness=endianness
+    )
+    prs_float64 = partial(
+        parse_float64, data=data, offset=offset, endianness=endianness
+    )
     prs_uint8 = partial(parse_uint8, data=data, offset=offset, endianness=endianness)
     prs_int16 = partial(parse_int16, data=data, offset=offset, endianness=endianness)
     prs_bytes = partial(parse_bytes, data=data, offset=offset, endianness=endianness)
 
     # Add your parsing logic here
-    binary_metadata = {}
+    binary_metadata: dict[str, int | float | str] = {}
     for name, prop in BinaryMetaDataStructure.items():
         if prop.atomic_type == AtomicType.undefined:
-            value = "NOT PARSED"
+            binary_metadata[name] = "NOT PARSED"
         elif prop.atomic_type == AtomicType.uint8:
-            value = prs_uint8(prop.location)
+            binary_metadata[name] = int(prs_uint8(prop.location))
         elif prop.atomic_type == AtomicType.uint16:
-            value = prs_uint16(prop.location)
+            binary_metadata[name] = int(prs_uint16(prop.location))
         elif prop.atomic_type == AtomicType.int16:
-            value = prs_int16(prop.location)
+            binary_metadata[name] = int(prs_int16(prop.location))
         elif prop.atomic_type == AtomicType.int32:
-            value = prs_int32(prop.location)
+            binary_metadata[name] = int(prs_int32(prop.location))
         elif prop.atomic_type == AtomicType.float32:
-            value = prs_float32(prop.location)
+            binary_metadata[name] = float(prs_float32(prop.location))
         elif prop.atomic_type == AtomicType.float64:
-            value = prs_float64(prop.location)
+            binary_metadata[name] = float(prs_float64(prop.location))
         elif prop.atomic_type == AtomicType.bytes:
-            value = prs_bytes(prop.location)
+            binary_metadata[name] = prs_bytes(prop.location).decode()
         else:
             raise ValueError(f"Unknown atomic type: {prop.atomic_type}")
-        binary_metadata[name] = value
 
     trigger_time = convert_time_stamp(
-        binary_metadata["trigger_seconds"],
-        binary_metadata["trigger_minutes"],
-        binary_metadata["trigger_hours"],
-        binary_metadata["trigger_days"],
-        binary_metadata["trigger_months"],
-        binary_metadata["trigger_years"],
+        cast(float, binary_metadata["trigger_seconds"]),
+        cast(int, binary_metadata["trigger_minutes"]),
+        cast(int, binary_metadata["trigger_hours"]),
+        cast(int, binary_metadata["trigger_days"]),
+        cast(int, binary_metadata["trigger_months"]),
+        cast(int, binary_metadata["trigger_years"]),
         second_digits=second_digits,
     )
 
@@ -127,12 +133,16 @@ def parse_metadata(data: bytes, offset: int, endianness: str, second_digits: int
         "rolling",
         "cumulative",
     ]
-    record_type = record_type_list[binary_metadata["record_type"]]
-    processing_done = processing_list[binary_metadata["processing_done"]]
-    time_base = convert_time_base(binary_metadata["time_base"])
-    vertical_coupling = vertical_coupling_list[binary_metadata["vertical_coupling"]]
-    bandwidth_limit = bandwidth_limit_list[binary_metadata["bandwidth_limit"]]
-    wave_source = wave_source_list[binary_metadata["wave_source"]]
+    record_type = record_type_list[cast(int, binary_metadata["record_type"])]
+    processing_done = processing_list[cast(int, binary_metadata["processing_done"])]
+    time_base = convert_time_base(cast(int, binary_metadata["time_base"]))
+    vertical_coupling = vertical_coupling_list[
+        cast(int, binary_metadata["vertical_coupling"])
+    ]
+    bandwidth_limit = bandwidth_limit_list[
+        cast(int, binary_metadata["bandwidth_limit"])
+    ]
+    wave_source = wave_source_list[cast(int, binary_metadata["wave_source"])]
 
     return MetaData(
         templateName=binary_metadata["template_name"],
@@ -183,7 +193,12 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
         second_digits=second_digits,
     )
 
-    start = pos_wavedesc + metadata.waveDescriptor + metadata.userText + metadata.trigTimeArray
+    start = (
+        pos_wavedesc
+        + metadata.waveDescriptor
+        + metadata.userText
+        + metadata.trigTimeArray
+    )
     if metadata.commType == 0:  # data is stored in 8bit integers
         y = np.frombuffer(
             data[start : start + metadata.waveArray1],
@@ -202,7 +217,11 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
     y = metadata.verticalGain * np.array(y) - metadata.verticalOffset
 
     x = (
-        np.linspace(0, metadata.waveArrayCount * metadata.horizInterval, num=metadata.waveArrayCount)
+        np.linspace(
+            0,
+            metadata.waveArrayCount * metadata.horizInterval,
+            num=metadata.waveArrayCount,
+        )
         + metadata.horizOffset
     )
 

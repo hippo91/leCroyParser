@@ -5,16 +5,15 @@ from LeCroy oscilloscopes into human-readable formats.
 It includes functions to convert time stamps into a formatted string
 and to convert time base numbers into a human-readable format.
 """
-import numpy as np
 
 
 def convert_time_stamp(  # pylint: disable=too-many-arguments, too-many-positional-arguments
-    seconds: np.float64,
-    minutes: np.uint8,
-    hours: np.uint8,
-    days: np.uint8,
-    months: np.uint8,
-    years: np.int16,
+    seconds: float,
+    minutes: int,
+    hours: int,
+    days: int,
+    months: int,
+    years: int,
     second_digits: int = 3,
 ) -> str:
     """
@@ -47,9 +46,7 @@ def convert_time_base(time_base_number: int) -> str:
     """
     if time_base_number < 48:
         unit = "pnum k"[int(time_base_number / 9)]
-        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][
-            time_base_number % 9
-        ]
+        value = [1, 2, 5, 10, 20, 50, 100, 200, 500][time_base_number % 9]
         return f"{value} " + unit.strip() + "s/div"
     if time_base_number == 100:
         return "EXTERNAL"
