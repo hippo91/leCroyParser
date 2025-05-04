@@ -23,7 +23,7 @@ from lecroyparser.parsing import (
     parse_int16,
     parse_bytes,
 )
-from lecroyparser.metadata import MetaData
+from lecroyparser.metadata import BinaryMetaDataStructure, AtomicType, MetaData
 from lecroyparser.time_conversion import convert_time_stamp, convert_time_base
 
 
@@ -37,11 +37,56 @@ def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any],
     """
     return lambda x: f(g(x))
 
+def parse_metadata(data: bytes, offset: int, endianness: str, second_digits: int = 3) -> Any:
+    """
+    Parse the metadata from the data.
 
-def parse_data(  # pylint: disable=too-many-locals, too-many-statements
-    data: bytes, sparse: int = -1, second_digits: int = 3
-) -> tuple[npt.NDArray[np.floating[Any]], MetaData]:
-    """Parse the data."""
+    :param data: The data to parse
+    :param endianness: The endianness of the data
+    :param second_digits: The number of digits after the decimal point for seconds
+    :return: The parsed metadata
+    """
+    prs_uint16 = partial(parse_uint16, data=data, offset=offset, endianness=endianness)
+    prs_int32 = partial(parse_int32, data=data, offset=offset, endianness=endianness)
+    prs_float32 = partial(parse_float32, data=data, offset=offset, endianness=endianness)
+    prs_float64 = partial(parse_float64, data=data, offset=offset, endianness=endianness)
+    prs_uint8 = partial(parse_uint8, data=data, offset=offset, endianness=endianness)
+    prs_int16 = partial(parse_int16, data=data, offset=offset, endianness=endianness)
+    prs_bytes = partial(parse_bytes, data=data, offset=offset, endianness=endianness)
+
+    # Add your parsing logic here
+    binary_metadata = {}
+    for name, prop in BinaryMetaDataStructure.items():
+        if prop == "NOT PARSED":
+            value = prop
+        elif prop.atomic_type == AtomicType.uint8:
+            value = prs_uint8(prop.location)
+        elif prop.atomic_type == AtomicType.uint16:
+            value = prs_uint16(prop.location)
+        elif prop.atomic_type == AtomicType.int16:
+            value = prs_int16(prop.location)
+        elif prop.atomic_type == AtomicType.int32:
+            value = prs_int32(prop.location)
+        elif prop.atomic_type == AtomicType.float32:
+            value = prs_float32(prop.location)
+        elif prop.atomic_type == AtomicType.float64:
+            value = prs_float64(prop.location)
+        elif prop.atomic_type == AtomicType.bytes:
+            value = prs_bytes(prop.location)
+        else:
+            raise ValueError(f"Unknown atomic type: {prop.atomic_type}")
+        binary_metadata[name] = value
+
+    trigger_time = convert_time_stamp(
+        binary_metadata["trigger_seconds"],
+        binary_metadata["trigger_minutes"],
+        binary_metadata["trigger_hours"],
+        binary_metadata["trigger_days"],
+        binary_metadata["trigger_months"],
+        binary_metadata["trigger_years"],
+        second_digits=second_digits,
+    )
+
     wave_source_list = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
     vertical_coupling_list = ["DC50", "GND", "DC1M", "GND", "AC1M"]
     bandwidth_limit_list = ["off", "on"]
@@ -67,7 +112,46 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
         "rolling",
         "cumulative",
     ]
+    record_type = record_type_list[binary_metadata["record_type"]]
+    processing_done = processing_list[binary_metadata["processing_done"]]
+    time_base = convert_time_base(binary_metadata["time_base"])
+    vertical_coupling = vertical_coupling_list[binary_metadata["vertical_coupling"]]
+    bandwidth_limit = bandwidth_limit_list[binary_metadata["bandwidth_limit"]]
+    wave_source = wave_source_list[binary_metadata["wave_source"]]
 
+    return MetaData(
+        templateName=binary_metadata["template_name"],
+        commType=binary_metadata["comm_type"],
+        waveDescriptor=binary_metadata["wave_descriptor"],
+        userText=binary_metadata["user_text"],
+        trigTimeArray=binary_metadata["trig_time_array"],
+        waveArray1=binary_metadata["wave_array1"],
+        instrumentName=binary_metadata["instrument_name"],
+        instrumentNumber=binary_metadata["instrument_number"],
+        traceLabel=binary_metadata["trace_label"],
+        waveArrayCount=binary_metadata["wave_array_count"],
+        verticalGain=binary_metadata["vertical_gain"],
+        verticalOffset=binary_metadata["vertical_offset"],
+        nominalBits=binary_metadata["nominal_bits"],
+        horizInterval=binary_metadata["horiz_interval"],
+        horizOffset=binary_metadata["horiz_offset"],
+        vertUnit=binary_metadata["vert_unit"],
+        horUnit=binary_metadata["hor_unit"],
+        sequenceSegments=binary_metadata["sequence_segments"],
+        triggerTime=trigger_time,
+        recordType=record_type,
+        processingDone=processing_done,
+        timeBase=time_base,
+        verticalCoupling=vertical_coupling,
+        bandwidthLimit=bandwidth_limit,
+        waveSource=wave_source,
+    )
+
+
+def parse_data(  # pylint: disable=too-many-locals, too-many-statements
+    data: bytes, sparse: int = -1, second_digits: int = 3
+) -> tuple[npt.NDArray[np.floating[Any]], MetaData]:
+    """Parse the data."""
     # convert the first 50 bytes to a string to find position of substring WAVEDESC
     pos_wavedesc = data[:50].decode("ascii", "replace").index("WAVEDESC")
 
@@ -76,100 +160,35 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
         34
     )
     endianness = [">", "<"][comm_order]
-    prs_bytes = partial(
-        parse_bytes, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_uint16 = partial(
-        parse_uint16, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_index = compose(partial(cast, int), prs_uint16)
-    prs_int32 = partial(
-        parse_int32, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_float32 = partial(
-        parse_float32, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_float64 = partial(
-        parse_float64, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_uint8 = partial(
-        parse_uint8, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_int16 = partial(
-        parse_int16, data=data, offset=pos_wavedesc, endianness=endianness
-    )
-    prs_time_base = compose(convert_time_base, prs_uint16)
 
-    template_name = prs_bytes(16)
-    comm_type = prs_uint16(32)  # encodes whether data is stored as 8 or 16bit
-
-    wave_descriptor = prs_int32(36)
-    user_text = prs_int32(40)
-    trig_time_array = prs_int32(48)
-    wave_array1 = prs_int32(60)
-
-    instrument_name = prs_bytes(76)
-    instrument_number = prs_int32(92)
-
-    trace_label = "NOT PARSED"
-    wave_array_count = prs_int32(116)
-
-    vertical_gain = prs_float32(156)
-    vertical_offset = prs_float32(160)
-
-    nominal_bits = prs_uint16(172)
-
-    horiz_interval = prs_float32(176)
-    horiz_offset = prs_float64(180)
-
-    vert_unit = "NOT PARSED"
-    hor_unit = "NOT PARSED"
-
-    sequence_segments = prs_int32(144)
-
-    trigger_seconds = prs_float64(296)
-    trigger_minutes = prs_uint8(304)
-    trigger_hours = prs_uint8(305)
-    trigger_days = prs_uint8(306)
-    trigger_months = prs_uint8(307)
-    trigger_years = prs_int16(308)
-    trigger_time = convert_time_stamp(
-        trigger_seconds,
-        trigger_minutes,
-        trigger_hours,
-        trigger_days,
-        trigger_months,
-        trigger_years,
+    metadata = parse_metadata(
+        data,
+        offset=pos_wavedesc,
+        endianness=endianness,
         second_digits=second_digits,
     )
-    record_type = record_type_list[prs_index(316)]
-    processing_done = processing_list[prs_index(318)]
-    time_base = prs_time_base(324)
-    vertical_coupling = vertical_coupling_list[prs_index(326)]
-    bandwidth_limit = bandwidth_limit_list[prs_index(334)]
-    wave_source = wave_source_list[prs_index(344)]
 
-    start = pos_wavedesc + wave_descriptor + user_text + trig_time_array
-    if comm_type == 0:  # data is stored in 8bit integers
+    start = pos_wavedesc + metadata.waveDescriptor + metadata.userText + metadata.trigTimeArray
+    if metadata.commType == 0:  # data is stored in 8bit integers
         y = np.frombuffer(
-            data[start : start + wave_array1],
-            dtype=np.dtype((endianness + "i1", wave_array1)),
+            data[start : start + metadata.waveArray1],
+            dtype=np.dtype((endianness + "i1", metadata.waveArray1)),
             count=1,
         )[0]
     else:  # 16 bit integers
-        length = wave_array1 // 2
+        length = metadata.waveArray1 // 2
         y = np.frombuffer(
-            data[start : start + wave_array1],
+            data[start : start + metadata.waveArray1],
             dtype=np.dtype((endianness + "i2", length)),
             count=1,
         )[0]
 
     # now scale the ADC values
-    y = vertical_gain * np.array(y) - vertical_offset
+    y = metadata.verticalGain * np.array(y) - metadata.verticalOffset
 
     x = (
-        np.linspace(0, wave_array_count * horiz_interval, num=wave_array_count)
-        + horiz_offset
+        np.linspace(0, metadata.waveArrayCount * metadata.horizInterval, num=metadata.waveArrayCount)
+        + metadata.horizOffset
     )
 
     if sparse > 0:
@@ -180,33 +199,7 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
 
     # Concatenate data.x and data.y into a bidimensional array
     combined_data = np.column_stack((x, y))
-    return combined_data, MetaData(
-        templateName=template_name,
-        commType=comm_type,
-        waveDescriptor=wave_descriptor,
-        userText=user_text,
-        trigTimeArray=trig_time_array,
-        waveArray1=wave_array1,
-        instrumentName=instrument_name,
-        instrumentNumber=instrument_number,
-        traceLabel=trace_label,
-        waveArrayCount=wave_array_count,
-        verticalGain=vertical_gain,
-        verticalOffset=vertical_offset,
-        nominalBits=nominal_bits,
-        horizInterval=horiz_interval,
-        horizOffset=horiz_offset,
-        vertUnit=vert_unit,
-        horUnit=hor_unit,
-        sequenceSegments=sequence_segments,
-        triggerTime=trigger_time,
-        recordType=record_type,
-        processingDone=processing_done,
-        timeBase=time_base,
-        verticalCoupling=vertical_coupling,
-        bandwidthLimit=bandwidth_limit,
-        waveSource=wave_source,
-    )
+    return combined_data, metadata
 
 
 def find_channels_files(first_channel_file_path: str) -> list[str]:
