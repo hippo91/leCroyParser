@@ -16,6 +16,33 @@ from lecroyparser.metadata import BinaryMetaDataStructure, AtomicType, MetaData
 from lecroyparser.time_conversion import convert_time_stamp, convert_time_base
 
 
+WAVE_SOURCES = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
+VERTICAL_COUPLINGS = ["DC50", "GND", "DC1M", "GND", "AC1M"]
+BANDWIDTH_LIMITS = ["off", "on"]
+RECORD_TYPES = [
+    "single_sweep",
+    "interleaved",
+    "histogram",
+    "graph",
+    "filter_coefficient",
+    "complex",
+    "extrema",
+    "sequence_obsolete",
+    "centered_RIS",
+    "peak_detect",
+]
+PROCESSING_TYPES = [
+    "No Processing",
+    "FIR Filter",
+    "interpolated",
+    "sparsed",
+    "autoscaled",
+    "no_resulst",
+    "rolling",
+    "cumulative",
+]
+
+
 def unpack(  # pylint: disable=too-many-arguments
     position: int,
     *,
@@ -53,7 +80,7 @@ parse_float64: partial[np.float64] = partial(unpack, length=8, format_specifier=
 parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16")
 
 
-def parse_metadata( # pylint: disable=too-many-locals
+def parse_metadata(  # pylint: disable=too-many-locals
     data: bytes, offset: int, endianness: str, second_digits: int = 3
 ) -> Any:
     """
@@ -77,7 +104,9 @@ def parse_metadata( # pylint: disable=too-many-locals
     prs_bytes = partial(parse_bytes, data=data, offset=offset, endianness=endianness)
 
     # Add your parsing logic here
-    binary_metadata: dict[str, int | float | str] = {}
+    binary_metadata: dict[
+        str, np.uint8 | np.uint16 | np.int16 | np.int32 | np.float32 | np.float64 | str
+    ] = {}
     for name, prop in BinaryMetaDataStructure.items():
         if prop.atomic_type == AtomicType.undefined:
             binary_metadata[name] = "NOT PARSED"
@@ -108,68 +137,41 @@ def parse_metadata( # pylint: disable=too-many-locals
         second_digits=second_digits,
     )
 
-    wave_source_list = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
-    vertical_coupling_list = ["DC50", "GND", "DC1M", "GND", "AC1M"]
-    bandwidth_limit_list = ["off", "on"]
-    record_type_list = [
-        "single_sweep",
-        "interleaved",
-        "histogram",
-        "graph",
-        "filter_coefficient",
-        "complex",
-        "extrema",
-        "sequence_obsolete",
-        "centered_RIS",
-        "peak_detect",
-    ]
-    processing_list = [
-        "No Processing",
-        "FIR Filter",
-        "interpolated",
-        "sparsed",
-        "autoscaled",
-        "no_resulst",
-        "rolling",
-        "cumulative",
-    ]
-    record_type = record_type_list[cast(int, binary_metadata["record_type"])]
-    processing_done = processing_list[cast(int, binary_metadata["processing_done"])]
+    record_type = RECORD_TYPES[cast(int, binary_metadata["record_type"])]
+    processing_done = PROCESSING_TYPES[cast(int, binary_metadata["processing_done"])]
     time_base = convert_time_base(cast(int, binary_metadata["time_base"]))
-    vertical_coupling = vertical_coupling_list[
+    vertical_coupling = VERTICAL_COUPLINGS[
         cast(int, binary_metadata["vertical_coupling"])
     ]
-    bandwidth_limit = bandwidth_limit_list[
-        cast(int, binary_metadata["bandwidth_limit"])
-    ]
-    wave_source = wave_source_list[cast(int, binary_metadata["wave_source"])]
+    bandwidth_limit = BANDWIDTH_LIMITS[cast(int, binary_metadata["bandwidth_limit"])]
+    wave_source = WAVE_SOURCES[cast(int, binary_metadata["wave_source"])]
 
     return MetaData(
-        templateName=binary_metadata["template_name"],
-        commType=binary_metadata["comm_type"],
-        waveDescriptor=binary_metadata["wave_descriptor"],
-        userText=binary_metadata["user_text"],
-        trigTimeArray=binary_metadata["trig_time_array"],
-        waveArray1=binary_metadata["wave_array1"],
-        instrumentName=binary_metadata["instrument_name"],
-        instrumentNumber=binary_metadata["instrument_number"],
-        traceLabel=binary_metadata["trace_label"],
-        waveArrayCount=binary_metadata["wave_array_count"],
-        verticalGain=binary_metadata["vertical_gain"],
-        verticalOffset=binary_metadata["vertical_offset"],
-        nominalBits=binary_metadata["nominal_bits"],
-        horizInterval=binary_metadata["horiz_interval"],
-        horizOffset=binary_metadata["horiz_offset"],
-        vertUnit=binary_metadata["vert_unit"],
-        horUnit=binary_metadata["hor_unit"],
-        sequenceSegments=binary_metadata["sequence_segments"],
-        triggerTime=trigger_time,
-        recordType=record_type,
-        processingDone=processing_done,
-        timeBase=time_base,
-        verticalCoupling=vertical_coupling,
-        bandwidthLimit=bandwidth_limit,
-        waveSource=wave_source,
+        template_name=str(binary_metadata["template_name"]),
+        comm_type=int(binary_metadata["comm_type"]),
+        wave_descriptor=int(binary_metadata["wave_descriptor"]),
+        user_text=int(binary_metadata["user_text"]),
+        trig_time_array=int(binary_metadata["trig_time_array"]),
+        wave_array1=int(binary_metadata["wave_array1"]),
+        instrument_name=str(binary_metadata["instrument_name"]),
+        instrument_number=int(binary_metadata["instrument_number"]),
+        trace_label=str(binary_metadata["trace_label"]),
+        wave_array_count=cast(np.int32, binary_metadata["wave_array_count"]),
+        vertical_gain=cast(np.float32, binary_metadata["vertical_gain"]),
+        vertical_offset=cast(np.float32, binary_metadata["vertical_offset"]),
+        nominal_bits=int(binary_metadata["nominal_bits"]),
+        horiz_interval=cast(np.float32, binary_metadata["horiz_interval"]),
+        horiz_offset=cast(np.float64, binary_metadata["horiz_offset"]),
+        vert_unit=str(binary_metadata["vert_unit"]),
+        hor_unit=str(binary_metadata["hor_unit"]),
+        sequence_segments=int(binary_metadata["sequence_segments"]),
+        trigger_time=trigger_time,
+        record_type=record_type,
+        processing_done=processing_done,
+        time_base=time_base,
+        vertical_coupling=vertical_coupling,
+        bandwidth_limit=bandwidth_limit,
+        wave_source=wave_source,
     )
 
 
@@ -195,34 +197,34 @@ def parse_data(  # pylint: disable=too-many-locals, too-many-statements
 
     start = (
         pos_wavedesc
-        + metadata.waveDescriptor
-        + metadata.userText
-        + metadata.trigTimeArray
+        + metadata.wave_descriptor
+        + metadata.user_text
+        + metadata.trig_time_array
     )
-    if metadata.commType == 0:  # data is stored in 8bit integers
+    if metadata.comm_type == 0:  # data is stored in 8bit integers
         y = np.frombuffer(
-            data[start : start + metadata.waveArray1],
-            dtype=np.dtype((endianness + "i1", metadata.waveArray1)),
+            data[start : start + metadata.wave_array1],
+            dtype=np.dtype((endianness + "i1", metadata.wave_array1)),
             count=1,
         )[0]
     else:  # 16 bit integers
-        length = metadata.waveArray1 // 2
+        length = metadata.wave_array1 // 2
         y = np.frombuffer(
-            data[start : start + metadata.waveArray1],
+            data[start : start + metadata.wave_array1],
             dtype=np.dtype((endianness + "i2", length)),
             count=1,
         )[0]
 
     # now scale the ADC values
-    y = metadata.verticalGain * np.array(y) - metadata.verticalOffset
+    y = metadata.vertical_gain * np.array(y) - metadata.vertical_offset
 
     x = (
         np.linspace(
             0,
-            metadata.waveArrayCount * metadata.horizInterval,
-            num=metadata.waveArrayCount,
+            metadata.wave_array_count * metadata.horiz_interval,
+            num=metadata.wave_array_count,
         )
-        + metadata.horizOffset
+        + metadata.horiz_offset
     )
 
     if sparse > 0:
