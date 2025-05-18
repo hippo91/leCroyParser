@@ -50,6 +50,22 @@ def test_uint16():
                 format_specifier="u2")
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
+    # Test out of range values failure
+    min_value = np.iinfo(np.uint16).max
+    max_value = np.iinfo(np.uint32).max
+    # assert uint16_min_value == 0
+    expected_output = np.random.randint(min_value, max_value)
+    input_data = expected_output.to_bytes(4, byteorder="big") # pylint: disable=no-member
+
+    # Test Big Endian
+    result = unpack(data=input_data,
+                offset=OFFSET,
+                position=POSITION,
+                length=2,
+                endianness=">",
+                format_specifier="u2")
+    assert result != expected_output, f"Expected {expected_output}, but got {result}"
+
 
 def test_str():
     """
