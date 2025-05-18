@@ -1,12 +1,15 @@
 """
 Test the unpack function from parsing.py
 """
-import struct
 # mypy: ignore-errors
+from random import randint, uniform
+import struct
+
+import numpy as np
 from lecroyparser.parsing import unpack
 
 
-def test_unpack_null_offset_null_position():
+def test_unpack_null_offset_null_position_uint32():
     """
     Test the unpack function from scope_data_func.py
 
@@ -19,7 +22,7 @@ def test_unpack_null_offset_null_position():
     offset = 0
     position = 0
 
-    expected_output = 2000
+    expected_output = randint(0, 65535)
     input_data = expected_output.to_bytes(2, byteorder="big")
 
     # Test Big Endian
@@ -76,7 +79,7 @@ def test_unpack_null_offset_null_position_str():
     assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
 
 
-def test_unpack_null_offset_null_position_float():
+def test_unpack_null_offset_null_position_float32():
     """
     Test the unpack function from scope_data_func.py
 
@@ -89,7 +92,9 @@ def test_unpack_null_offset_null_position_float():
     offset = 0
     position = 0
 
-    expected_output = 2000.0
+    float32_min_value = np.finfo(np.float32).min
+    float32_max_value = np.finfo(np.float32).max
+    expected_output = uniform(float32_min_value, float32_max_value)
     input_data = struct.pack(">f", expected_output)
 
     # Test Big Endian
