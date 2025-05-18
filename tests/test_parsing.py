@@ -9,7 +9,7 @@ import numpy as np
 from lecroyparser.parsing import unpack
 
 
-def test_unpack_null_offset_null_position_uint32():
+def test_unpack_null_offset_null_position_uint16():
     """
     Test the unpack function from scope_data_func.py
 
@@ -22,7 +22,13 @@ def test_unpack_null_offset_null_position_uint32():
     offset = 0
     position = 0
 
-    expected_output = randint(0, 65535)
+    # Generate a random 2-byte unsigned integer
+    # The range is from 0 to 65535 (2^16 - 1)
+    # because we are using 2 bytes
+    uint16_max_value = np.iinfo(np.uint16).max
+    uint16_min_value = np.iinfo(np.uint16).min
+    assert uint16_min_value == 0
+    expected_output = randint(uint16_min_value, uint16_max_value)
     input_data = expected_output.to_bytes(2, byteorder="big")
 
     # Test Big Endian
