@@ -2,7 +2,6 @@
 Test the unpack function from parsing.py
 """
 # mypy: ignore-errors
-from random import randint, uniform
 import struct
 
 import numpy as np
@@ -25,10 +24,10 @@ def test_unpack_null_offset_null_position_uint16():
     # Generate a random 2-byte unsigned integer
     # The range is from 0 to 65535 (2^16 - 1)
     # because we are using 2 bytes
-    uint16_max_value = np.iinfo(np.uint16).max
-    uint16_min_value = np.iinfo(np.uint16).min
-    assert uint16_min_value == 0
-    expected_output = randint(uint16_min_value, uint16_max_value)
+    min_value = np.iinfo(np.uint16).min
+    max_value = np.iinfo(np.uint16).max
+    # assert uint16_min_value == 0
+    expected_output = np.random.randint(min_value, max_value)
     input_data = expected_output.to_bytes(2, byteorder="big")
 
     # Test Big Endian
@@ -98,9 +97,9 @@ def test_unpack_null_offset_null_position_float32():
     offset = 0
     position = 0
 
-    float32_min_value = np.finfo(np.float32).min
-    float32_max_value = np.finfo(np.float32).max
-    expected_output = uniform(float32_min_value, float32_max_value)
+    min_value = np.finfo(np.float32).min
+    max_value = np.finfo(np.float32).max
+    expected_output = np.random.uniform(min_value, max_value)
     input_data = struct.pack(">f", expected_output)
 
     # Test Big Endian
