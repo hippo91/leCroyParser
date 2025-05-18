@@ -5,21 +5,72 @@ Test the unpack function from parsing.py
 from lecroyparser.parsing import unpack
 
 
-def test_unpack():
+def test_unpack_null_offset_null_position():
     """
-    Test the parse function from scope_data_func.py
-    """
-    # Test with a sample input
-    input_data = bytes([0x07, 0xd0])  # Example byte data
-    expected_output = 2000 # Expected unpacked value
+    Test the unpack function from scope_data_func.py
 
-    # Call the parse function
+    Offset and position are both 0
+    The input data is a 2-byte unsigned integer
+    The expected output is the integer value of the input data
+
+    The test checks both big-endian and little-endian formats
+    """
+    offset = 0
+    position = 0
+
+    expected_output = 2000
+    input_data = expected_output.to_bytes(2, byteorder="big")
+
+    # Test Big Endian
     result = unpack(data=input_data,
-                   offset=0,
-                   position=0,
+                   offset=offset,
+                   position=position,
                    length=2,
                    endianness=">",
                    format_specifier="u2")
-
-    # Assert the result
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+    #  Test Little Endian
+    result = unpack(data=input_data[::-1],
+                   offset=offset,
+                   position=position,
+                   length=2,
+                   endianness="<",
+                   format_specifier="u2")
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+
+def test_unpack_null_offset_null_position_str():
+    """
+    Test the unpack function from scope_data_func.py
+
+    Offset and position are both 0
+    The input data is a 6-byte string
+    The expected output is the string value of the input data
+
+    The test checks that endianness does not affect the string unpacking, because
+    strings are not affected by endianness
+    """
+    offset = 0
+    position = 0
+
+    expected_output = "Lecroy"
+    input_data = bytes(expected_output, "utf-8")
+
+    result = unpack(data=input_data,
+                   offset=offset,
+                   position=position,
+                   length=6,
+                   endianness=">",
+                   format_specifier="S6")
+    assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
+
+    # Changing the endianness should not affect the result
+    result = unpack(data=input_data,
+                   offset=offset,
+                   position=position,
+                   length=6,
+                   endianness="<",
+                   format_specifier="S6")
+    assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
+
