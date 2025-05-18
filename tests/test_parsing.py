@@ -28,7 +28,7 @@ def test_unpack_null_offset_null_position_uint16():
     max_value = np.iinfo(np.uint16).max
     # assert uint16_min_value == 0
     expected_output = np.random.randint(min_value, max_value)
-    input_data = expected_output.to_bytes(2, byteorder="big")
+    input_data = expected_output.to_bytes(2, byteorder="big") # pylint: disable=no-member
 
     # Test Big Endian
     result = unpack(data=input_data,
