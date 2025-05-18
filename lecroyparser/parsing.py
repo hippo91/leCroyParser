@@ -77,7 +77,7 @@ parse_int16: partial[np.int16] = partial(unpack, length=2, format_specifier="i2"
 parse_int32: partial[np.int32] = partial(unpack, length=4, format_specifier="i4")
 parse_float32: partial[np.float32] = partial(unpack, length=4, format_specifier="f4")
 parse_float64: partial[np.float64] = partial(unpack, length=8, format_specifier="f8")
-parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16")
+parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16", endianness="|")
 
 
 def parse_metadata(  # pylint: disable=too-many-locals
@@ -101,7 +101,7 @@ def parse_metadata(  # pylint: disable=too-many-locals
     )
     prs_uint8 = partial(parse_uint8, data=data, offset=offset, endianness=endianness)
     prs_int16 = partial(parse_int16, data=data, offset=offset, endianness=endianness)
-    prs_bytes = partial(parse_bytes, data=data, offset=offset, endianness=endianness)
+    prs_bytes = partial(parse_bytes, data=data, offset=offset)
 
     # Add your parsing logic here
     binary_metadata: dict[
