@@ -1,5 +1,7 @@
 """
 Test the unpack function from parsing.py
+
+Offset and position are both 0
 """
 # mypy: ignore-errors
 import struct
@@ -8,19 +10,19 @@ import numpy as np
 from lecroyparser.parsing import unpack
 
 
-def test_unpack_null_offset_null_position_uint16():
-    """
-    Test the unpack function from scope_data_func.py
+OFFSET = 0
+POSITION = 0
 
-    Offset and position are both 0
+
+def test_uint16():
+    """
+    Test the unpack function from scope_data_func.py for uint16
+
     The input data is a 2-byte unsigned integer
     The expected output is the integer value of the input data
 
     The test checks both big-endian and little-endian formats
     """
-    offset = 0
-    position = 0
-
     # Generate a random 2-byte unsigned integer
     # The range is from 0 to 65535 (2^16 - 1)
     # because we are using 2 bytes
@@ -32,43 +34,39 @@ def test_unpack_null_offset_null_position_uint16():
 
     # Test Big Endian
     result = unpack(data=input_data,
-                   offset=offset,
-                   position=position,
-                   length=2,
-                   endianness=">",
-                   format_specifier="u2")
+                offset=OFFSET,
+                position=POSITION,
+                length=2,
+                endianness=">",
+                format_specifier="u2")
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
     #  Test Little Endian
     result = unpack(data=input_data[::-1],
-                   offset=offset,
-                   position=position,
-                   length=2,
-                   endianness="<",
-                   format_specifier="u2")
+                offset=OFFSET,
+                position=POSITION,
+                length=2,
+                endianness="<",
+                format_specifier="u2")
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
 
-def test_unpack_null_offset_null_position_str():
+def test_str():
     """
-    Test the unpack function from scope_data_func.py
+    Test the unpack function from scope_data_func.py for string
 
-    Offset and position are both 0
     The input data is a 6-byte string
     The expected output is the string value of the input data
 
     The test checks that endianness does not affect the string unpacking, because
     strings are not affected by endianness
     """
-    offset = 0
-    position = 0
-
     expected_output = "Lecroy"
     input_data = bytes(expected_output, "utf-8")
 
     result = unpack(data=input_data,
-                   offset=offset,
-                   position=position,
+                   offset=OFFSET,
+                   position=POSITION,
                    length=6,
                    endianness=">",
                    format_specifier="S6")
@@ -76,27 +74,23 @@ def test_unpack_null_offset_null_position_str():
 
     # Changing the endianness should not affect the result
     result = unpack(data=input_data,
-                   offset=offset,
-                   position=position,
+                   offset=OFFSET,
+                   position=POSITION,
                    length=6,
                    endianness="<",
                    format_specifier="S6")
     assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
 
 
-def test_unpack_null_offset_null_position_float32():
+def test_float32():
     """
-    Test the unpack function from scope_data_func.py
+    Test the unpack function from scope_data_func.py for float32
 
-    Offset and position are both 0
     The input data is a 4-byte float
     The expected output is the float value of the input data
 
     The test checks both big-endian and little-endian formats
     """
-    offset = 0
-    position = 0
-
     min_value = np.finfo(np.float32).min
     max_value = np.finfo(np.float32).max
     expected_output = np.random.uniform(min_value, max_value)
@@ -104,8 +98,8 @@ def test_unpack_null_offset_null_position_float32():
 
     # Test Big Endian
     result = unpack(data=input_data,
-                   offset=offset,
-                   position=position,
+                   offset=OFFSET,
+                   position=POSITION,
                    length=4,
                    endianness=">",
                    format_specifier="f4")
@@ -113,8 +107,8 @@ def test_unpack_null_offset_null_position_float32():
 
     #  Test Little Endian
     result = unpack(data=input_data[::-1],
-                   offset=offset,
-                   position=position,
+                   offset=OFFSET,
+                   position=POSITION,
                    length=4,
                    endianness="<",
                    format_specifier="f4")
