@@ -20,7 +20,7 @@ POSITION = 0
     (np.int16, 2, "i2"),
     (np.int32, 4, "i4"),
 ])
-def test_unpack(nptype, atomic_size, format_specifier):
+def test_unpack_integer(nptype, atomic_size, format_specifier):
     """
     Test the unpack function from parsing.py for various data types
 
@@ -73,7 +73,51 @@ def test_unpack(nptype, atomic_size, format_specifier):
     assert result != expected_output, f"Expected {expected_output}, but got {result}"
 
 
-def test_str():
+@mark.parametrize("nptype,atomic_size,format_specifier", [
+    (np.float32, 4, "f4"),
+    (np.float64, 8, "f8"),
+])
+def test_unpack_float(nptype, atomic_size, format_specifier):
+    """
+    Test the unpack function from parsing.py for float data type
+
+    The input data is a byte array of the specified size
+    The expected output is the float value of the input data
+
+    The test checks both big-endian and little-endian formats
+    """
+    min_value = np.finfo(nptype).min / 2.
+    max_value = np.finfo(nptype).max / 2.
+    # Halving min and max values to avoid overflow in uniform generation
+    # See https://stackoverflow.com/questions/79052139/numpy-random-uniform-valid-bounds-for-double
+    rng = np.random.default_rng()
+    expected_output = rng.uniform(min_value, max_value)
+    if nptype == np.float32:
+        input_data = struct.pack(">f", expected_output)
+    else:
+        # For float64, we use struct to pack the data
+        input_data = struct.pack(">d", expected_output)
+
+    # Test Big Endian
+    result = unpack(data=input_data,
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness=">",
+                   format_specifier=format_specifier)
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+    # Test Little Endian (input data is reversed)
+    result = unpack(data=input_data[::-1],
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness="<",
+                   format_specifier=format_specifier)
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+
+def test_unpack_str():
     """
     Test the unpack function from scope_data_func.py for string
 
@@ -103,35 +147,3 @@ def test_str():
                    format_specifier="S6")
     assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
 
-
-def test_float32():
-    """
-    Test the unpack function from scope_data_func.py for float32
-
-    The input data is a 4-byte float
-    The expected output is the float value of the input data
-
-    The test checks both big-endian and little-endian formats
-    """
-    min_value = np.finfo(np.float32).min
-    max_value = np.finfo(np.float32).max
-    expected_output = np.random.uniform(min_value, max_value)
-    input_data = struct.pack(">f", expected_output)
-
-    # Test Big Endian
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=4,
-                   endianness=">",
-                   format_specifier="f4")
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
-
-    #  Test Little Endian
-    result = unpack(data=input_data[::-1],
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=4,
-                   endianness="<",
-                   format_specifier="f4")
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
