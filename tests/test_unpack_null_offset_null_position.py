@@ -7,113 +7,69 @@ Offset and position are both 0
 import struct
 
 import numpy as np
+from pytest import mark
 from lecroyparser.parsing import unpack
 
 
 OFFSET = 0
 POSITION = 0
 
-def test_uint8():
+@mark.parametrize("nptype,atomic_size,format_specifier", [
+    (np.uint8, 1, "u1"),
+    (np.uint16, 2, "u2"),
+    (np.int16, 2, "i2"),
+    (np.int32, 4, "i4"),
+])
+def test_unpack(nptype, atomic_size, format_specifier):
     """
-    Test the unpack function from scope_data_func.py for uint8
+    Test the unpack function from parsing.py for various data types
 
-    The input data is a single byte
+    The input data is a byte array of the specified size
     The expected output is the integer value of the input data
 
     The test checks both big-endian and little-endian formats
     """
-    # Generate a random unsigned integer between 0 and 255
-    # The range is from 0 to 255 (2^8 - 1)
-    # because we are using 1 byte
-    min_value = np.iinfo(np.uint8).min
-    max_value = np.iinfo(np.uint8).max
-    # assert uint8_min_value == 0
+    # Generate a random integer within the range of the specified numpy type
+    min_value = np.iinfo(nptype).min
+    max_value = np.iinfo(nptype).max
     expected_output = np.random.randint(min_value, max_value + 1)
-    input_data = expected_output.to_bytes(1, byteorder="big") # pylint: disable=no-member
-
-    # Test Big Endian
+    if nptype.__name__.startswith("u"):
+        input_data = expected_output.to_bytes(atomic_size, byteorder="big")
+    else:
+        input_data = expected_output.to_bytes(atomic_size, byteorder="big", signed=True)
+    # Test Big Endian
     result = unpack(data=input_data,
-                offset=OFFSET,
-                position=POSITION,
-                length=1,
-                endianness=">",
-                format_specifier="u1")
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness=">",
+                   format_specifier=format_specifier)
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
-    #  Test Little Endian (input data is reversed)
+    # Test Little Endian (input data is reversed)
     result = unpack(data=input_data[::-1],
-                offset=OFFSET,
-                position=POSITION,
-                length=1,
-                endianness="<",
-                format_specifier="u1")
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness="<",
+                   format_specifier=format_specifier)
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
-    # Test out of range values failure
-    min_value = np.iinfo(np.uint8).max
-    max_value = np.iinfo(np.uint16).max
-    # assert uint8_min_value == 0
+    # Test out of range values failure
+    min_value = np.iinfo(nptype).max + 1
+    max_value = np.iinfo(nptype).max + 10
     expected_output = np.random.randint(min_value, max_value)
-    input_data = expected_output.to_bytes(2, byteorder="big") # pylint: disable=no-member
-    # Test Big Endian
+    if nptype.__name__.startswith("u"):
+        input_data = expected_output.to_bytes(atomic_size * 2, byteorder="big")
+    else:
+        input_data = expected_output.to_bytes(atomic_size * 2, byteorder="big", signed=True)
+    # Test Big Endian
     result = unpack(data=input_data,
-                offset=OFFSET,
-                position=POSITION,
-                length=1,
-                endianness=">",
-                format_specifier="u1")
-    assert result != expected_output, f"Expected {expected_output}, but got {result}"
-
-def test_uint16():
-    """
-    Test the unpack function from scope_data_func.py for uint16
-
-    The input data is a 2-byte unsigned integer
-    The expected output is the integer value of the input data
-
-    The test checks both big-endian and little-endian formats
-    """
-    # Generate a random 2-byte unsigned integer
-    # The range is from 0 to 65535 (2^16 - 1)
-    # because we are using 2 bytes
-    min_value = np.iinfo(np.uint16).min
-    max_value = np.iinfo(np.uint16).max
-    # assert uint16_min_value == 0
-    expected_output = np.random.randint(min_value, max_value + 1)
-    input_data = expected_output.to_bytes(2, byteorder="big") # pylint: disable=no-member
-
-    # Test Big Endian
-    result = unpack(data=input_data,
-                offset=OFFSET,
-                position=POSITION,
-                length=2,
-                endianness=">",
-                format_specifier="u2")
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
-
-    #  Test Little Endian (input data is reversed)
-    result = unpack(data=input_data[::-1],
-                offset=OFFSET,
-                position=POSITION,
-                length=2,
-                endianness="<",
-                format_specifier="u2")
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
-
-    # Test out of range values failure
-    min_value = np.iinfo(np.uint16).max
-    max_value = np.iinfo(np.uint32).max
-    # assert uint16_min_value == 0
-    expected_output = np.random.randint(min_value, max_value)
-    input_data = expected_output.to_bytes(4, byteorder="big") # pylint: disable=no-member
-
-    # Test Big Endian
-    result = unpack(data=input_data,
-                offset=OFFSET,
-                position=POSITION,
-                length=2,
-                endianness=">",
-                format_specifier="u2")
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness=">",
+                   format_specifier=format_specifier)
     assert result != expected_output, f"Expected {expected_output}, but got {result}"
 
 
