@@ -13,6 +13,56 @@ from lecroyparser.parsing import unpack
 OFFSET = 0
 POSITION = 0
 
+def test_uint8():
+    """
+    Test the unpack function from scope_data_func.py for uint8
+
+    The input data is a single byte
+    The expected output is the integer value of the input data
+
+    The test checks both big-endian and little-endian formats
+    """
+    # Generate a random unsigned integer between 0 and 255
+    # The range is from 0 to 255 (2^8 - 1)
+    # because we are using 1 byte
+    min_value = np.iinfo(np.uint8).min
+    max_value = np.iinfo(np.uint8).max
+    # assert uint8_min_value == 0
+    expected_output = np.random.randint(min_value, max_value + 1)
+    input_data = expected_output.to_bytes(1, byteorder="big") # pylint: disable=no-member
+
+    # Test Big Endian
+    result = unpack(data=input_data,
+                offset=OFFSET,
+                position=POSITION,
+                length=1,
+                endianness=">",
+                format_specifier="u1")
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+    #  Test Little Endian (input data is reversed)
+    result = unpack(data=input_data[::-1],
+                offset=OFFSET,
+                position=POSITION,
+                length=1,
+                endianness="<",
+                format_specifier="u1")
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+    # Test out of range values failure
+    min_value = np.iinfo(np.uint8).max
+    max_value = np.iinfo(np.uint16).max
+    # assert uint8_min_value == 0
+    expected_output = np.random.randint(min_value, max_value)
+    input_data = expected_output.to_bytes(2, byteorder="big") # pylint: disable=no-member
+    # Test Big Endian
+    result = unpack(data=input_data,
+                offset=OFFSET,
+                position=POSITION,
+                length=1,
+                endianness=">",
+                format_specifier="u1")
+    assert result != expected_output, f"Expected {expected_output}, but got {result}"
 
 def test_uint16():
     """
@@ -29,7 +79,7 @@ def test_uint16():
     min_value = np.iinfo(np.uint16).min
     max_value = np.iinfo(np.uint16).max
     # assert uint16_min_value == 0
-    expected_output = np.random.randint(min_value, max_value)
+    expected_output = np.random.randint(min_value, max_value + 1)
     input_data = expected_output.to_bytes(2, byteorder="big") # pylint: disable=no-member
 
     # Test Big Endian
@@ -41,7 +91,7 @@ def test_uint16():
                 format_specifier="u2")
     assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
-    #  Test Little Endian
+    #  Test Little Endian (input data is reversed)
     result = unpack(data=input_data[::-1],
                 offset=OFFSET,
                 position=POSITION,
