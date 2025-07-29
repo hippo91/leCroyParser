@@ -14,6 +14,34 @@ from lecroyparser.parsing import unpack
 OFFSET = 0
 POSITION = 0
 
+
+def _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier):
+    """
+    Helper function to test unpacking with big-endian data
+    """
+    result = unpack(data=input_data,
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness=">",
+                   format_specifier=format_specifier)
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+
+def _little_endian_test_helper(input_data, expected_output, atomic_size, format_specifier):
+    """
+    Helper function to test unpacking with little-endian data
+    """
+    # Reversing the input data for little-endian test
+    result = unpack(data=input_data[::-1],
+                   offset=OFFSET,
+                   position=POSITION,
+                   length=atomic_size,
+                   endianness="<",
+                   format_specifier=format_specifier)
+    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+
+
 @mark.parametrize("nptype,atomic_size,format_specifier", [
     (np.uint8, 1, "u1"),
     (np.uint16, 2, "u2"),
@@ -37,23 +65,9 @@ def test_unpack_integer(nptype, atomic_size, format_specifier):
         input_data = expected_output.to_bytes(atomic_size, byteorder="big")
     else:
         input_data = expected_output.to_bytes(atomic_size, byteorder="big", signed=True)
-    # Test Big Endian
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=atomic_size,
-                   endianness=">",
-                   format_specifier=format_specifier)
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
 
-    # Test Little Endian (input data is reversed)
-    result = unpack(data=input_data[::-1],
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=atomic_size,
-                   endianness="<",
-                   format_specifier=format_specifier)
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+    _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
+    _little_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
 
     # Test out of range values failure
     min_value = np.iinfo(nptype).max + 1
@@ -98,23 +112,8 @@ def test_unpack_float(nptype, atomic_size, format_specifier):
         # For float64, we use struct to pack the data
         input_data = struct.pack(">d", expected_output)
 
-    # Test Big Endian
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=atomic_size,
-                   endianness=">",
-                   format_specifier=format_specifier)
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
-
-    # Test Little Endian (input data is reversed)
-    result = unpack(data=input_data[::-1],
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=atomic_size,
-                   endianness="<",
-                   format_specifier=format_specifier)
-    assert result == expected_output, f"Expected {expected_output}, but got {result}"
+    _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
+    _little_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
 
 
 def test_unpack_str():
