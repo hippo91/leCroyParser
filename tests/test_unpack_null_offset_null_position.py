@@ -11,17 +11,27 @@ from pytest import mark
 from lecroyparser.parsing import unpack
 
 
-OFFSET = 0
-POSITION = 0
+def _generate_random_bytes(size: int) -> bytes:
+    """
+    Generate a random byte array of the specified size.
+    """
+    return np.random.bytes(size)
 
 
 def _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier):
     """
     Helper function to test unpacking with big-endian data
     """
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
+    # Generate input data with a header and footer to simulate real data
+    random_position = np.random.randint(0, 256)
+    random_offset = np.random.randint(0, 256)
+    random_footer_size = np.random.randint(1, 16)
+    header = _generate_random_bytes(random_offset + random_position)
+    footer = _generate_random_bytes(random_footer_size)
+    _data = header + input_data + footer
+    result = unpack(data=_data,
+                   offset=random_offset,
+                   position=random_position,
                    length=atomic_size,
                    endianness=">",
                    format_specifier=format_specifier)
@@ -32,10 +42,16 @@ def _little_endian_test_helper(input_data, expected_output, atomic_size, format_
     """
     Helper function to test unpacking with little-endian data
     """
+    random_position = np.random.randint(0, 256)
+    random_offset = np.random.randint(0, 256)
+    random_footer_size = np.random.randint(1, 16)
+    header = _generate_random_bytes(random_offset + random_position)
+    footer = _generate_random_bytes(random_footer_size)
     # Reversing the input data for little-endian test
-    result = unpack(data=input_data[::-1],
-                   offset=OFFSET,
-                   position=POSITION,
+    _data = header + input_data[::-1] + footer
+    result = unpack(data=_data,
+                   offset=random_offset,
+                   position=random_position,
                    length=atomic_size,
                    endianness="<",
                    format_specifier=format_specifier)
@@ -65,6 +81,7 @@ def test_unpack_integer(nptype, atomic_size, format_specifier):
         input_data = expected_output.to_bytes(atomic_size, byteorder="big")
     else:
         input_data = expected_output.to_bytes(atomic_size, byteorder="big", signed=True)
+    print(f"input_data: {input_data.hex(sep='|')}, expected_output: {expected_output}")
 
     _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
     _little_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
@@ -79,8 +96,8 @@ def test_unpack_integer(nptype, atomic_size, format_specifier):
         input_data = expected_output.to_bytes(atomic_size * 2, byteorder="big", signed=True)
     # Test Big Endian
     result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
+                   offset=0,
+                   position=0,
                    length=atomic_size,
                    endianness=">",
                    format_specifier=format_specifier)
@@ -111,6 +128,7 @@ def test_unpack_float(nptype, atomic_size, format_specifier):
     else:
         # For float64, we use struct to pack the data
         input_data = struct.pack(">d", expected_output)
+    print(f"input_data: {input_data.hex(sep='|')}, expected_output: {expected_output}")
 
     _big_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
     _little_endian_test_helper(input_data, expected_output, atomic_size, format_specifier)
@@ -128,21 +146,9 @@ def test_unpack_str():
     """
     expected_output = "Lecroy"
     input_data = bytes(expected_output, "utf-8")
+    print(f"input_data: {input_data.hex(sep='|')}, expected_output: {expected_output}")
 
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=6,
-                   endianness=">",
-                   format_specifier="S6")
-    assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
-
-    # Changing the endianness should not affect the result
-    result = unpack(data=input_data,
-                   offset=OFFSET,
-                   position=POSITION,
-                   length=6,
-                   endianness="<",
-                   format_specifier="S6")
-    assert result.decode() == expected_output, f"Expected {expected_output}, but got {result}"
-
+    _big_endian_test_helper(input_data, input_data, 6, "S6")
+    # Changing the order of bytes for little-endian test
+    # Changing endianness does not affect string unpacking
+    _little_endian_test_helper(input_data[::-1], input_data, 6, "S6")
