@@ -12,8 +12,9 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
-from lecroyparser.metadata import BinaryMetaDataStructure, AtomicType, MetaData
+from lecroyparser.metadata import MetaData
 from lecroyparser.time_conversion import convert_time_stamp, convert_time_base
+from lecroyparser.binary_metadata_structure import AtomicType, BinaryMetaDataStructure 
 
 
 WAVE_SOURCES = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
