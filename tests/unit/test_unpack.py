@@ -1,7 +1,5 @@
 """
 Test the unpack function from parsing.py
-
-Offset and position are both 0
 """
 # mypy: ignore-errors
 import struct
