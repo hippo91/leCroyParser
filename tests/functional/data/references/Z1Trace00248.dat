@@ -1,3 +1,4 @@
+# MetaData(template_name='LECROY_2_3', comm_type=0, wave_descriptor=346, user_text=0, trig_time_array=0, wave_array1=435002, instrument_name='LECROYWR6100A', instrument_number=18501, trace_label='NOT PARSED', wave_array_count=np.int32(435002), vertical_gain=np.float32(0.0017677849), vertical_offset=np.float32(0.015), nominal_bits=8, horiz_interval=np.float32(2e-09), horiz_offset=np.float64(-0.0008695017896475718), vert_unit='NOT PARSED', hor_unit='NOT PARSED', sequence_segments=1, trigger_time='2002-05-02 07:11:49.498', record_type='single_sweep', processing_done='No Processing', time_base='100 us/div', vertical_coupling='DC50', bandwidth_limit='off', wave_source='Unknown')
 -8.695017896476e-04 -1.146443001926e-02
 -8.694997896430e-04 -1.676778495312e-02
 -8.694977896385e-04 -9.696644730866e-03
