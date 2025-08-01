@@ -134,7 +134,7 @@ def test_unpack_float(nptype, atomic_size, format_specifier):
 
 def test_unpack_str():
     """
-    Test the unpack function from scope_data_func.py for string
+    Test the unpack function from parsing module for string
 
     The input data is a 6-byte string
     The expected output is the string value of the input data

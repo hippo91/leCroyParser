@@ -2,7 +2,7 @@ from hashlib import file_digest
 from pathlib import Path
 from random import choice
 
-from lecroyparser.scope_data_func import convert_to_text_file
+from lecroyparser.convert import convert_to_text_file
 
 
 def test_convert_to_text_file(tmp_path):

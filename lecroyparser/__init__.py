@@ -20,7 +20,7 @@ Updated 2020 Jeroen van Oorschot, Eindhoven University of Technology
 """
 
 import argparse
-from lecroyparser.scope_data_func import convert_to_text_file
+from lecroyparser.convert import convert_to_text_file
 
 
 if __name__ == "__main__":
