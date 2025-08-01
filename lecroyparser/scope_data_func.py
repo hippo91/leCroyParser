@@ -50,22 +50,22 @@ def find_channels_files(first_channel_file_path: str) -> list[str]:
 
 
 def parse_data_from_multiple_files(
-    filenames: list[str], sparse: int = -1, second_digits: int = 3
+    filepaths: list[str], sparse: int = -1, second_digits: int = 3
 ) -> tuple[npt.NDArray[np.floating[Any]], MetaData | None]:
     """
     Parse the data from multiple leCroy binary waveform files.
 
-    :param filenames: List of paths to the leCroy binary waveform files
+    :param filepaths: List of paths to the leCroy binary waveform files
     :param sparse: Number of points to skip in the x and y data
     :param secondDigits: Number of digits after the decimal point for seconds
     :return: Tuple of data and metadata
     """
     data: npt.NDArray[np.floating[Any]] = np.ndarray([])
     meta = None
-    for filename in filenames:
-        assert filename.endswith(".trc")
+    for filepath in filepaths:
+        assert filepath.name.endswith(".trc")
         data_temp, meta_temp = parse_data_from_file(
-            filename, sparse=sparse, second_digits=second_digits
+            filepath, sparse=sparse, second_digits=second_digits
         )
         data = np.column_stack((data, data_temp[:, 1])) if data.size else data_temp
         if meta is None:
@@ -74,18 +74,18 @@ def parse_data_from_multiple_files(
 
 
 def parse_data_from_file(
-    filename: str, sparse: int = -1, second_digits: int = 3
+    filepath: Path, sparse: int = -1, second_digits: int = 3
 ) -> tuple[npt.NDArray[np.floating[Any]], MetaData]:
     """
     Parse the data from a leCroy binary waveform file.
 
-    :param filename: Path to the leCroy binary waveform file
+    :param filepath: Path to the leCroy binary waveform file
     :param sparse: Number of points to skip in the x and y data
     :param secondDigits: Number of digits after the decimal point for seconds
     :return: Tuple of data and metadata
     """
-    assert filename.endswith(".trc")
-    with open(filename, "rb") as f:
+    assert filepath.name.endswith(".trc")
+    with filepath.open("rb") as f:
         content = f.read()
     return parse_data(content, sparse=sparse, second_digits=second_digits)
 
@@ -93,7 +93,7 @@ def parse_data_from_file(
 def dump(
     data: npt.NDArray[np.floating[Any]],
     metadata: Optional[MetaData] = None,
-    output_filename: Optional[str] = None,
+    output_path: Optional[Path] = None,
 ) -> None:
     """
     Dump the content of the data object to the console or to the file in argument if any.
@@ -105,34 +105,36 @@ def dump(
     """
     assert data.shape[1] == 2
     writer = partial(np.savetxt, X=data, header=str(metadata), fmt="%+15.12e")
-    if output_filename:
-        writer(output_filename)
+    if output_path:
+        writer(output_path)
     else:
         writer(sys.stdout)
 
 
 def convert_to_text_file(
-    filename: str, output_dir: str = None, sparse: int = -1, second_digits: int = 3, parse_all: bool = False
-) -> str:
+    filepath: Path, output_dir: Path = None, sparse: int = -1, second_digits: int = 3, parse_all: bool = False
+) -> Path:
     """
     Convert a leCroy binary waveform file to a text file.
     The text file will contain the x and y data in a formatted manner.
     The output file will have the same name as the input file, but with a .dat extension.
 
-    :param filename: Path to the leCroy binary waveform file
+    :param filepath: Path to the leCroy binary waveform file
     :return: Path to the output text file
     """
     if parse_all:
-        filenames = find_channels_files(filename)
+        filenames = find_channels_files(filepath)
         data, meta = parse_data_from_multiple_files(
             filenames, sparse=sparse, second_digits=second_digits
         )
     else:
         data, meta = parse_data_from_file(
-            filename, sparse=sparse, second_digits=second_digits
+            filepath, sparse=sparse, second_digits=second_digits
         )
-    output_name = filename.replace(".trc", ".dat")
+    output_name = filepath.stem + ".dat"
     if output_dir:
-        output_name = (Path(output_dir) / Path(output_name).name).as_posix()
-    dump(data, metadata=meta, output_filename=output_name)
-    return output_name
+        output_path = output_dir / output_name
+    else:
+        output_path = filepath.parent / output_name
+    dump(data, metadata=meta, output_path=output_path)
+    return output_path

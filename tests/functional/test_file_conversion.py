@@ -31,14 +31,14 @@ def test_convert_to_text_file(tmp_path):
     file_path = data_dir / selected_file
     
     # Use pytest's tmp_path fixture for output
-    output_file = convert_to_text_file(file_path.as_posix(), output_dir=str(tmp_path))
-    reference_file = data_dir / "references" / Path(output_file).name
+    output_file = convert_to_text_file(file_path, output_dir=tmp_path)
+    reference_file = data_dir / "references" / output_file.name
     
     # Verify the reference file exists
     assert reference_file.exists(), f"Reference file {reference_file} not found"
     
     # Compare the generated file with the reference file
-    with open(output_file, "rb") as actual:
+    with output_file.open("rb") as actual:
         with reference_file.open("rb") as expected:
             print(f"Comparing {output_file} with {reference_file}")
             actual_hash = file_digest(actual, "sha256").hexdigest()
