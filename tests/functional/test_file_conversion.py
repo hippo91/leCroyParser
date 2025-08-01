@@ -2,10 +2,13 @@ from hashlib import file_digest
 from pathlib import Path
 from random import choice
 
+from pytest import mark
+
 from lecroyparser.convert import convert_to_text_file
 
 
-def test_convert_to_text_file(tmp_path):
+@mark.parametrize("sparse", [-1, 10000])
+def test_convert_to_text_file(tmp_path, sparse):
     """Test conversion of LeCroy binary waveform files to text files."""
     # Use Path(__file__) to get the directory of the current test file
     test_dir = Path(__file__).parent
@@ -31,8 +34,13 @@ def test_convert_to_text_file(tmp_path):
     file_path = data_dir / selected_file
     
     # Use pytest's tmp_path fixture for output
-    output_file = convert_to_text_file(file_path, output_dir=tmp_path)
-    reference_file = data_dir / "references" / output_file.name
+    output_file = convert_to_text_file(file_path, output_dir=tmp_path, sparse=sparse)
+    if sparse == -1:
+        reference_file = data_dir / "references" / "sparse_default" / output_file.name
+    elif sparse == 10000:
+        reference_file = data_dir / "references" / "sparse_10000" / output_file.name
+    else:
+        raise ValueError(f"Unsupported sparse value: {sparse}")
     
     # Verify the reference file exists
     assert reference_file.exists(), f"Reference file {reference_file} not found"
