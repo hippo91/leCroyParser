@@ -44,6 +44,7 @@ class MetaData:  # pylint: disable=too-many-instance-attributes
         bandwidth_limit (str): The bandwidth limit.
         wave_source (str): The source of the wave.
     """
+
     template_name: str
     comm_type: int
     wave_descriptor: int

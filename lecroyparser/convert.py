@@ -112,7 +112,11 @@ def dump(
 
 
 def convert_to_text_file(
-    filepath: Path, output_dir: Path = None, sparse: int = -1, second_digits: int = 3, parse_all: bool = False
+    filepath: Path,
+    output_dir: Path = None,
+    sparse: int = -1,
+    second_digits: int = 3,
+    parse_all: bool = False,
 ) -> Path:
     """
     Convert a leCroy binary waveform file to a text file.

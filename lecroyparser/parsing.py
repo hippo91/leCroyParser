@@ -14,7 +14,7 @@ import numpy.typing as npt
 
 from lecroyparser.metadata import MetaData
 from lecroyparser.time_conversion import convert_time_stamp, convert_time_base
-from lecroyparser.binary_metadata_structure import AtomicType, BinaryMetaDataStructure 
+from lecroyparser.binary_metadata_structure import AtomicType, BinaryMetaDataStructure
 
 
 WAVE_SOURCES = ["Channel 1", "Channel 2", "Channel 3", "Channel 4", "Unknown"]
@@ -105,7 +105,9 @@ parse_float64: partial[np.float64] = partial(unpack, length=8, format_specifier=
 """
 parse_bytes is a partial function that unpacks 16 bytes as a string.
 """
-parse_bytes: partial[bytes] = partial(unpack, length=16, format_specifier="S16", endianness="|")
+parse_bytes: partial[bytes] = partial(
+    unpack, length=16, format_specifier="S16", endianness="|"
+)
 
 
 def parse_metadata(  # pylint: disable=too-many-locals
