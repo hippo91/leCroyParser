@@ -8,7 +8,7 @@ Introduces type hints and uses numpy for data handling.
 
 from functools import partial
 import sys
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Generator
 from pathlib import Path
 
 import numpy as np
@@ -29,16 +29,15 @@ def compose(f: Callable[[Any], Any], g: Callable[[Any], Any]) -> Callable[[Any],
     return lambda x: f(g(x))
 
 
-def find_channels_files(first_channel_file_path: str) -> list[str]:
+def find_channels_files(first_channel_file_path: Path) -> Generator[Path, None, None]:
     """
     Find all leCroy binary waveform files in the given directory.
 
     :param first_channel_file_path: Path to the first channel file
     :return: List of paths to the leCroy binary waveform files
     """
-    filepath = Path(first_channel_file_path)
-    dir_path = filepath.parent
-    filename = filepath.name
+    dir_path = first_channel_file_path.parent
+    filename = first_channel_file_path.name
     if not filename.endswith(".trc"):
         raise ValueError("The file must be a .trc file")
     if not filename.startswith("C"):
@@ -46,11 +45,11 @@ def find_channels_files(first_channel_file_path: str) -> list[str]:
     if not dir_path.is_dir():
         raise ValueError("The path must be a directory")
     channel_common_part = filename[2:]
-    return [str(_path) for _path in dir_path.glob(f"C[0-9]{channel_common_part}")]
+    return dir_path.glob(f"C[0-9]{channel_common_part}")
 
 
 def parse_data_from_multiple_files(
-    filepaths: list[str], sparse: int = -1, second_digits: int = 3
+    filepaths: Generator[Path, None, None], sparse: int = -1, second_digits: int = 3
 ) -> tuple[npt.NDArray[np.floating[Any]], MetaData | None]:
     """
     Parse the data from multiple leCroy binary waveform files.
@@ -113,7 +112,7 @@ def dump(
 
 def convert_to_text_file(
     filepath: Path,
-    output_dir: Path = None,
+    output_dir: Optional[Path] = None,
     sparse: int = -1,
     second_digits: int = 3,
     parse_all: bool = False,
@@ -127,9 +126,9 @@ def convert_to_text_file(
     :return: Path to the output text file
     """
     if parse_all:
-        filenames = find_channels_files(filepath)
+        filespaths = find_channels_files(filepath)
         data, meta = parse_data_from_multiple_files(
-            filenames, sparse=sparse, second_digits=second_digits
+            filespaths, sparse=sparse, second_digits=second_digits
         )
     else:
         data, meta = parse_data_from_file(

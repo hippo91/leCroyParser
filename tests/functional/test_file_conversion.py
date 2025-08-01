@@ -1,3 +1,6 @@
+"""Test suite for the file conversion functionality of the LeCroy parser."""
+
+# mypy: ignore-errors
 from hashlib import file_digest
 from pathlib import Path
 from random import choice
